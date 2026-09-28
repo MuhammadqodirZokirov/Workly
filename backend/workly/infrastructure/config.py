@@ -31,7 +31,10 @@ class Settings(BaseSettings):
     eskiz_password: SecretStr | None = None
     eskiz_from: str = "4546"
 
-    auth_rate_limit_per_min: int = 5
+    # IP bo'yicha auth so'rovlari (TZ 18). Bitta Wi-Fi/mobil operator NAT ortida ko'p foydalanuvchi
+    # bo'lishi mumkin — 30. Brute-force'dan asosiy himoya raqam bo'yicha: 60 s da 1 kod, kuniga 5 ta,
+    # 5 xato — 15 daqiqa blok.
+    auth_rate_limit_per_min: int = 30
 
     # Shaxsiy ma'lumotlar (TZ 19-bo'lim)
     # Fernet kaliti. Yaratish:
