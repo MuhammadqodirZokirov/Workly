@@ -7,9 +7,9 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
-from rabotago.infrastructure.config import Settings, get_settings
-from rabotago.infrastructure.db.session import make_engine, make_sessionmaker
-from rabotago.infrastructure.sms import ConsoleSmsSender, EskizSmsSender, SmsSender
+from workly.infrastructure.config import Settings, get_settings
+from workly.infrastructure.db.session import make_engine, make_sessionmaker
+from workly.infrastructure.sms import ConsoleSmsSender, EskizSmsSender, SmsSender
 
 from .errors import install_error_handlers
 from .routers import auth, catalog, me, webhooks
@@ -28,7 +28,7 @@ def build_sms(settings: Settings) -> SmsSender:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Faza 1-lite: API, bot va (keyinroq) scheduler bitta jarayonda
-    from rabotago.interfaces.bot.factory import create_bot, create_dispatcher, set_default_commands
+    from workly.interfaces.bot.factory import create_bot, create_dispatcher, set_default_commands
 
     settings: Settings = app.state.settings
     engine = make_engine(settings.database_url)
@@ -70,7 +70,7 @@ async def lifespan(app: FastAPI):
 def create_app(settings: Settings | None = None, *, use_lifespan: bool = True) -> FastAPI:
     settings = settings or get_settings()
     app = FastAPI(
-        title="RabotaGo API",
+        title="Workly API",
         version="0.1.0",
         lifespan=lifespan if use_lifespan else None,
         docs_url="/api/docs",

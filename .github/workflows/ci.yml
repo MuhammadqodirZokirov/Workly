@@ -15,12 +15,12 @@ jobs:
       postgres:
         image: postgis/postgis:16-3.4
         env:
-          POSTGRES_USER: rabotago
-          POSTGRES_PASSWORD: rabotago
-          POSTGRES_DB: rabotago_test
+          POSTGRES_USER: workly
+          POSTGRES_PASSWORD: workly
+          POSTGRES_DB: workly_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U rabotago" --health-interval 5s --health-retries 10
+          --health-cmd "pg_isready -U workly" --health-interval 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,10 +35,10 @@ jobs:
       - name: Tests (PostgreSQL)
         run: pytest -q
         env:
-          TEST_DATABASE_URL: postgresql+asyncpg://rabotago:rabotago@localhost:5432/rabotago_test
+          TEST_DATABASE_URL: postgresql+asyncpg://workly:workly@localhost:5432/workly_test
       - name: Migrations up to date
         run: alembic upgrade head && alembic check
         env:
-          DATABASE_URL: postgresql+asyncpg://rabotago:rabotago@localhost:5432/rabotago_test
+          DATABASE_URL: postgresql+asyncpg://workly:workly@localhost:5432/workly_test
           JWT_SECRET: ci
           BOT_TOKEN: "1:ci"

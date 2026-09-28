@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, status
 
-from rabotago.application.users import UserService
+from workly.application.users import UserService
 
 from ..deps import CurrentUser, DbDep
 from ..schemas import ConsentIn, MeOut, MePatch, RoleIn

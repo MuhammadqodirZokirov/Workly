@@ -1,4 +1,4 @@
-"""uvicorn rabotago.interfaces.api.asgi:app"""
+"""uvicorn workly.interfaces.api.asgi:app"""
 
 import logging
 

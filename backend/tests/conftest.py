@@ -6,12 +6,12 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from rabotago.infrastructure.config import Settings
-from rabotago.infrastructure.db import models  # noqa: F401
-from rabotago.infrastructure.db.base import Base
-from rabotago.infrastructure.db.session import make_sessionmaker
-from rabotago.infrastructure.seed import seed
-from rabotago.interfaces.api.main import create_app
+from workly.infrastructure.config import Settings
+from workly.infrastructure.db import models  # noqa: F401
+from workly.infrastructure.db.base import Base
+from workly.infrastructure.db.session import make_sessionmaker
+from workly.infrastructure.seed import seed
+from workly.interfaces.api.main import create_app
 
 BOT_TOKEN = "123456:TEST-token"
 

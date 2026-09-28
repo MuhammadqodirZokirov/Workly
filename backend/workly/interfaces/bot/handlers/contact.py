@@ -2,9 +2,9 @@ from aiogram import F, Router
 from aiogram.types import Message, ReplyKeyboardRemove
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rabotago.application.users import UserService
-from rabotago.domain.errors import Conflict
-from rabotago.infrastructure.config import Settings
+from workly.application.users import UserService
+from workly.domain.errors import Conflict
+from workly.infrastructure.config import Settings
 
 from ..texts import lang_of, t
 from .keyboards import open_app_kb

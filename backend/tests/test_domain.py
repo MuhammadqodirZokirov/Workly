@@ -6,10 +6,10 @@ from urllib.parse import urlencode
 
 import pytest
 
-from rabotago.domain.errors import Unauthorized, ValidationFailed
-from rabotago.domain.phone import normalize_phone
-from rabotago.domain.telegram_auth import verify_init_data
-from rabotago.domain.translit import latin_to_cyrillic
+from workly.domain.errors import Unauthorized, ValidationFailed
+from workly.domain.phone import normalize_phone
+from workly.domain.telegram_auth import verify_init_data
+from workly.domain.translit import latin_to_cyrillic
 
 from .conftest import BOT_TOKEN
 

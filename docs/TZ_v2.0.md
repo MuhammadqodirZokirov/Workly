@@ -1,5 +1,7 @@
 # IshTop — Texnik Topshiriq (TZ) v2.0 · Web App
 
+> **Eslatma:** platforma nomi **Workly** deb tanlandi (OS-32). Matndagi "IshTop" — eski ishchi nom.
+
 Sep 28, 2026 · @Muhammadqodir Zokirov
 
 ## Hujjat haqida
@@ -929,6 +931,6 @@ Javoblaringiz bilan 19 ta masala hal qilindi; 2 tasi ochiq — o'zini o'zi band 
 | OS-29 | O'zini o'zi band | Ruxsat etilgan faoliyatlar ro'yxatini tekshirish | Ochiq |
 | OS-30 | Uy xizmatlari tekshiruvi | Majburiy emas; ixtiyoriy "Tekshirilgan" belgilari | O'zgartirildi |
 | OS-31 | Tungi ishlar | 24/7 ochiq; tunda avtomatik qoidalar | O'zgartirildi |
-| OS-32 | Nom | Yangi qisqa nom tanlanadi, keyin domen va tovar belgisi | Ochiq |
+| OS-32 | Nom | **Workly** (brend: docs/brand); domen va tovar belgisi tekshiriladi | Tasdiqlandi |
 | OS-33 | Admin soatlari | Platforma 24/7; qo'lda admin ishi 07:00–21:00 | Default |
 | OS-34 | Admin bot | Kategoriya, ish turi, narx, hudud va signallar Telegram admin botda; moliyaviy sozlamalar TOTP bilan (16-bo'lim) | Tasdiqlandi |

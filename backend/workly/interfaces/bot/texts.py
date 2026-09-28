@@ -2,15 +2,15 @@
 Buyruqlar va havolalar {0}, {1} kabi raqamli joy egalari orqali qo'yiladi — ular transliteratsiya qilinmaydi.
 """
 
-from rabotago.domain.translit import latin_to_cyrillic
-from rabotago.domain.users import Lang
+from workly.domain.translit import latin_to_cyrillic
+from workly.domain.users import Lang
 
 _LATN = {
-    "start": "Assalomu alaykum, {0}!\n\nRabotaGo — kunlik ish va ishchini tez topish xizmati.",
+    "start": "Assalomu alaykum, {0}!\n\n<b>Workly</b> — ish top. Ishchi top. Ishonchli.",
     "share_phone_ask": "Davom etish uchun telefon raqamingizni yuboring 👇",
     "share_phone_btn": "📱 Raqamni yuborish",
     "open_app": "Ilovani ochish uchun tugmani bosing 👇",
-    "open_app_btn": "🚀 RabotaGo'ni ochish",
+    "open_app_btn": "🚀 Workly ilovasini ochish",
     "phone_ok": "✅ Raqamingiz tasdiqlandi.",
     "phone_not_own": "Iltimos, faqat o'zingizning raqamingizni tugma orqali yuboring.",
     "phone_taken": "Bu raqam boshqa Telegram akkauntga bog'langan. Qo'llab-quvvatlash xizmatiga yozing.",
@@ -21,11 +21,11 @@ _LATN = {
 }
 
 _RU = {
-    "start": "Здравствуйте, {0}!\n\nRabotaGo — сервис быстрого поиска подработки и работников.",
+    "start": "Здравствуйте, {0}!\n\n<b>Workly</b> — найди работу. Найди работника. Надёжно.",
     "share_phone_ask": "Чтобы продолжить, отправьте свой номер телефона 👇",
     "share_phone_btn": "📱 Отправить номер",
     "open_app": "Нажмите кнопку, чтобы открыть приложение 👇",
-    "open_app_btn": "🚀 Открыть RabotaGo",
+    "open_app_btn": "🚀 Открыть Workly",
     "phone_ok": "✅ Номер подтверждён.",
     "phone_not_own": "Пожалуйста, отправьте свой номер с помощью кнопки.",
     "phone_taken": "Этот номер привязан к другому Telegram-аккаунту. Напишите в поддержку.",
@@ -35,8 +35,20 @@ _RU = {
     "cmd_help": "Помощь",
 }
 
-# "RabotaGo" brend nomi transliteratsiya qilinmaydi
-_CYRL = {k: latin_to_cyrillic(v.replace("RabotaGo", "\x00")).replace("\x00", "RabotaGo") for k, v in _LATN.items()}
+# Brend nomi va HTML teglar transliteratsiya qilinmaydi
+_KEEP = ("<b>", "</b>", "Workly")
+
+
+def _to_cyrl(text: str) -> str:
+    for i, token in enumerate(_KEEP):
+        text = text.replace(token, f"\x00{i}\x00")
+    text = latin_to_cyrillic(text)
+    for i, token in enumerate(_KEEP):
+        text = text.replace(f"\x00{i}\x00", token)
+    return text
+
+
+_CYRL = {k: _to_cyrl(v) for k, v in _LATN.items()}
 
 TEXTS = {Lang.UZ_LATN: _LATN, Lang.UZ_CYRL: _CYRL, Lang.RU: _RU}
 

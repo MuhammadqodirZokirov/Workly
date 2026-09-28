@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     env: Literal["dev", "test", "staging", "prod"] = "dev"
-    database_url: str = "postgresql+asyncpg://rabotago:rabotago@localhost:5432/rabotago"
+    database_url: str = "postgresql+asyncpg://workly:workly@localhost:5432/workly"
     redis_url: str = "redis://localhost:6379/0"
 
     jwt_secret: SecretStr
@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # Telegram
     bot_token: SecretStr
     bot_mode: Literal["polling", "webhook", "off"] = "polling"
-    public_base_url: str | None = None  # webhook uchun, masalan https://api.rabotago.uz
+    public_base_url: str | None = None  # webhook uchun, masalan https://api.workly.uz
     bot_webhook_secret: SecretStr | None = None
     webapp_url: str = "https://example.com"
     telegram_auth_max_age: int = 24 * 3600

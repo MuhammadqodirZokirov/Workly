@@ -3,9 +3,9 @@ import asyncio
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from rabotago.infrastructure.config import get_settings
-from rabotago.infrastructure.db import models  # noqa: F401  (jadvallarni ro'yxatdan o'tkazish)
-from rabotago.infrastructure.db.base import Base
+from workly.infrastructure.config import get_settings
+from workly.infrastructure.db import models  # noqa: F401  (jadvallarni ro'yxatdan o'tkazish)
+from workly.infrastructure.db.base import Base
 
 target_metadata = Base.metadata
 

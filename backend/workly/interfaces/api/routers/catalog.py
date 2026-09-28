@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from rabotago.application.catalog import CatalogService
+from workly.application.catalog import CatalogService
 
 from ..deps import DbDep
 from ..schemas import CategoryOut, DistrictOut, Names, RegionOut, SpecializationOut

@@ -3,7 +3,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from rabotago.domain import errors as e
+from workly.domain import errors as e
 
 STATUS = {
     e.ValidationFailed: 422,

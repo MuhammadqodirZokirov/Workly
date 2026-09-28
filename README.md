@@ -1,12 +1,19 @@
-# RabotaGo
+<p align="center"><img src="docs/brand/workly-logo.webp" alt="Workly" width="360"></p>
 
-Toshkentda kunlik ishchi va ish beruvchini tez bog'laydigan platforma. To'liq texnik topshiriq: [docs/TZ_v2.0.md](docs/TZ_v2.0.md).
+<p align="center"><b>Ish top. Ishchi top. Ishonchli.</b></p>
+
+# Workly
+
+Toshkentda kunlik ishchi va ish beruvchini tez bog'laydigan platforma.
+
+- Texnik topshiriq: [docs/TZ_v2.0.md](docs/TZ_v2.0.md)
+- Brend: [docs/brand/BRAND.md](docs/brand/BRAND.md)
 
 ## Tuzilma
 
 ```
 backend/                     FastAPI + aiogram 3, bitta jarayon (Faza 1-lite)
-  rabotago/
+  workly/
     domain/                  sof qoidalar: xatolar, rollar, telefon, initData, transliteratsiya
     application/             use case'lar: AuthService, UserService, CatalogService
     infrastructure/          config, DB (SQLAlchemy 2 async), JWT, SMS (Eskiz), seed
@@ -20,7 +27,7 @@ admin/                       React + Refine (keyingi bloklar)
 deploy/                      docker-compose
 ```
 
-TZ'dagi `bot/` papkasi o'rniga bot hozircha `backend/rabotago/interfaces/bot` da turadi: Faza 1-lite'da API, bot va scheduler bitta jarayonda ishlaydi (TZ 22-bo'lim). Bot domen va application qatlamini to'g'ridan-to'g'ri chaqiradi. Alohida servisga ajratish keyinroq.
+TZ'dagi `bot/` papkasi o'rniga bot hozircha `backend/workly/interfaces/bot` da turadi: Faza 1-lite'da API, bot va scheduler bitta jarayonda ishlaydi (TZ 22-bo'lim). Bot domen va application qatlamini to'g'ridan-to'g'ri chaqiradi. Alohida servisga ajratish keyinroq.
 
 ## Lokal ishga tushirish
 
@@ -32,8 +39,8 @@ cd backend
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
 alembic upgrade head
-python -m rabotago.infrastructure.seed
-uvicorn rabotago.interfaces.api.asgi:app --reload
+python -m workly.infrastructure.seed
+uvicorn workly.interfaces.api.asgi:app --reload
 ```
 
 - API hujjati: http://localhost:8000/api/docs
@@ -47,7 +54,7 @@ Docker bilan: `docker compose -f deploy/docker-compose.yml --env-file .env up -d
 ```bash
 cd backend
 pytest                                   # SQLite xotirada
-TEST_DATABASE_URL=postgresql+asyncpg://user:pass@localhost/rabotago_test pytest
+TEST_DATABASE_URL=postgresql+asyncpg://user:pass@localhost/workly_test pytest
 ruff check . && ruff format --check .
 ```
 

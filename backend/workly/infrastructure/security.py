@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 import jwt
 
-from rabotago.domain.errors import Unauthorized
+from workly.domain.errors import Unauthorized
 
 ALGORITHM = "HS256"
 

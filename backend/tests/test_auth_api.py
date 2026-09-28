@@ -1,6 +1,6 @@
 from sqlalchemy import select
 
-from rabotago.infrastructure.db.models import AuthSession
+from workly.infrastructure.db.models import AuthSession
 
 from .test_domain import TG_USER, make_init_data
 

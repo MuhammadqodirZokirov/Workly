@@ -12,14 +12,14 @@ from redis.asyncio import Redis
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rabotago.domain.errors import Forbidden, RateLimited, Unauthorized, ValidationFailed
-from rabotago.domain.phone import normalize_phone
-from rabotago.domain.telegram_auth import verify_init_data
-from rabotago.domain.users import Lang, UserStatus
-from rabotago.infrastructure.config import Settings
-from rabotago.infrastructure.db.models import AuthSession, User
-from rabotago.infrastructure.security import create_access_token, hash_token, new_refresh_token
-from rabotago.infrastructure.sms import SmsSender
+from workly.domain.errors import Forbidden, RateLimited, Unauthorized, ValidationFailed
+from workly.domain.phone import normalize_phone
+from workly.domain.telegram_auth import verify_init_data
+from workly.domain.users import Lang, UserStatus
+from workly.infrastructure.config import Settings
+from workly.infrastructure.db.models import AuthSession, User
+from workly.infrastructure.security import create_access_token, hash_token, new_refresh_token
+from workly.infrastructure.sms import SmsSender
 
 TASHKENT = ZoneInfo("Asia/Tashkent")
 
@@ -181,7 +181,7 @@ class AuthService:
         await r.delete(key)
         await r.hset(key, mapping={"hash": self._code_hash(phone, code), "attempts": 0})
         await r.expire(key, OTP_TTL)
-        await self.sms.send(phone, f"RabotaGo tasdiqlash kodi: {code}")
+        await self.sms.send(phone, f"Workly tasdiqlash kodi: {code}")
         return OTP_TTL
 
     async def verify_otp(self, raw_phone: str, code: str, client: ClientInfo) -> TokenPair:

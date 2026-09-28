@@ -4,8 +4,8 @@ from aiogram.types import Message
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rabotago.infrastructure.config import Settings
-from rabotago.infrastructure.db.models import User
+from workly.infrastructure.config import Settings
+from workly.infrastructure.db.models import User
 
 from ..texts import lang_of, t
 from .keyboards import open_app_kb, share_phone_kb

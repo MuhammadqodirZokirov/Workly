@@ -5,8 +5,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from rabotago.domain.users import Lang
-from rabotago.infrastructure.config import Settings
+from workly.domain.users import Lang
+from workly.infrastructure.config import Settings
 
 from .handlers import setup_routers
 from .middlewares import DbSessionMiddleware, ThrottlingMiddleware

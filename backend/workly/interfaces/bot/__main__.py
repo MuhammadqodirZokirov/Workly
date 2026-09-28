@@ -1,12 +1,12 @@
 """Botni API'siz, alohida polling rejimida ishga tushirish (dev uchun):
-python -m rabotago.interfaces.bot
+python -m workly.interfaces.bot
 """
 
 import asyncio
 import logging
 
-from rabotago.infrastructure.config import get_settings
-from rabotago.infrastructure.db.session import make_engine, make_sessionmaker
+from workly.infrastructure.config import get_settings
+from workly.infrastructure.db.session import make_engine, make_sessionmaker
 
 from .factory import create_bot, create_dispatcher, set_default_commands
 

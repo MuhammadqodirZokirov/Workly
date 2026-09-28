@@ -7,10 +7,10 @@ from aiogram.types import Chat, Contact, Message, Update
 from aiogram.types import User as TgUser
 from sqlalchemy import select
 
-from rabotago.application.users import UserService
-from rabotago.domain.errors import Conflict
-from rabotago.infrastructure.db.models import User
-from rabotago.interfaces.bot.factory import create_dispatcher
+from workly.application.users import UserService
+from workly.domain.errors import Conflict
+from workly.infrastructure.db.models import User
+from workly.interfaces.bot.factory import create_dispatcher
 
 from .conftest import BOT_TOKEN
 
@@ -35,7 +35,7 @@ class FakeSession(BaseSession):
 def bot_env(maker, settings):
     session = FakeSession()
     bot = Bot(BOT_TOKEN, session=session)
-    s = settings.model_copy(update={"webapp_url": "https://app.rabotago.uz"})
+    s = settings.model_copy(update={"webapp_url": "https://app.workly.uz"})
     return bot, create_dispatcher(maker, s), session
 
 
@@ -64,7 +64,7 @@ async def test_start_asks_phone_then_contact_links(bot_env, db):
     contact = Contact(phone_number="998901234567", first_name="Ali", user_id=42)
     await dp.feed_update(bot, _msg(2, contact=contact))
     assert "tasdiqlandi" in session.calls[0].text
-    assert session.calls[1].reply_markup.inline_keyboard[0][0].web_app.url == "https://app.rabotago.uz"
+    assert session.calls[1].reply_markup.inline_keyboard[0][0].web_app.url == "https://app.workly.uz"
 
     user = await db.scalar(select(User).where(User.telegram_id == 42))
     assert user.phone == "+998901234567" and user.phone_verified_at is not None

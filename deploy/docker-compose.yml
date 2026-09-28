@@ -6,13 +6,13 @@ services:
     image: postgis/postgis:16-3.4
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-rabotago}
+      POSTGRES_USER: ${POSTGRES_USER:-workly}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD kerak}
-      POSTGRES_DB: ${POSTGRES_DB:-rabotago}
+      POSTGRES_DB: ${POSTGRES_DB:-workly}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rabotago}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-workly}"]
       interval: 5s
       retries: 10
 
@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-rabotago}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-rabotago}
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-workly}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-workly}
       REDIS_URL: redis://redis:6379/0
     depends_on:
       db: {condition: service_healthy}

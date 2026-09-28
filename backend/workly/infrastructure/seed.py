@@ -1,7 +1,7 @@
 """Boshlang'ich katalog: hududlar, tumanlar, kategoriyalar (TZ 4-bo'lim).
 
 Idempotent: mavjud yozuvlarga tegmaydi (admin o'zgartirgan bo'lishi mumkin), faqat yo'qlarini qo'shadi.
-    python -m rabotago.infrastructure.seed
+    python -m workly.infrastructure.seed
 """
 
 import asyncio
@@ -9,7 +9,7 @@ import asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rabotago.domain.translit import latin_to_cyrillic
+from workly.domain.translit import latin_to_cyrillic
 
 from .config import get_settings
 from .db.models import Category, District, Region, Specialization

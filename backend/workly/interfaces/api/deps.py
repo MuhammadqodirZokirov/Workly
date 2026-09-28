@@ -6,13 +6,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rabotago.application.auth import AuthService, ClientInfo
-from rabotago.domain.errors import Forbidden, RateLimited, Unauthorized
-from rabotago.domain.users import Role, UserStatus
-from rabotago.infrastructure.config import Settings
-from rabotago.infrastructure.db.models import User
-from rabotago.infrastructure.db.session import session_scope
-from rabotago.infrastructure.security import decode_access_token
+from workly.application.auth import AuthService, ClientInfo
+from workly.domain.errors import Forbidden, RateLimited, Unauthorized
+from workly.domain.users import Role, UserStatus
+from workly.infrastructure.config import Settings
+from workly.infrastructure.db.models import User
+from workly.infrastructure.db.session import session_scope
+from workly.infrastructure.security import decode_access_token
 
 
 def get_settings(request: Request) -> Settings:

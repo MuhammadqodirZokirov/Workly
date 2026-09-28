@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rabotago.infrastructure.db.models import Category, District, Region
+from workly.infrastructure.db.models import Category, District, Region
 
 
 class CatalogService:

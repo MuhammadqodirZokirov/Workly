@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from rabotago.domain.users import ConsentDoc, Lang, Role
+from workly.domain.users import ConsentDoc, Lang, Role
 
 
 class Names(BaseModel):

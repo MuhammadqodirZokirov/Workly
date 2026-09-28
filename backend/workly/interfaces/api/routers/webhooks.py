@@ -3,7 +3,7 @@ import hmac
 from aiogram.types import Update
 from fastapi import APIRouter, Header, Request, status
 
-from rabotago.domain.errors import Unauthorized
+from workly.domain.errors import Unauthorized
 
 from ..deps import SettingsDep
 

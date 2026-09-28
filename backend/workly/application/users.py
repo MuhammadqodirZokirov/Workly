@@ -3,10 +3,10 @@ from datetime import UTC, datetime
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from rabotago.domain.errors import Conflict, Forbidden
-from rabotago.domain.phone import normalize_phone
-from rabotago.domain.users import SELF_ASSIGNABLE_ROLES, ConsentDoc, Lang, Role, UserStatus
-from rabotago.infrastructure.db.models import AuthSession, Consent, User, UserRole
+from workly.domain.errors import Conflict, Forbidden
+from workly.domain.phone import normalize_phone
+from workly.domain.users import SELF_ASSIGNABLE_ROLES, ConsentDoc, Lang, Role, UserStatus
+from workly.infrastructure.db.models import AuthSession, Consent, User, UserRole
 
 
 class UserService:
