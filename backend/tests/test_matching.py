@@ -176,6 +176,7 @@ async def headers_for(client, db, user_id, redis, sms):
 
 
 async def tick(db, redis, notifier, now):
+    db.expire_all()  # API so'rovlari boshqa sessiyada o'zgartirgan bo'lishi mumkin
     svc = MatchingService(db, redis, notifier, now=now)
     stats = await svc.tick()
     await db.commit()

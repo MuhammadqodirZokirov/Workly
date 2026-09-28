@@ -5,7 +5,7 @@ import fakeredis
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool
 
 from workly.infrastructure.config import Settings
 from workly.infrastructure.db import models  # noqa: F401
@@ -82,9 +82,15 @@ def settings(tmp_path) -> Settings:
 
 
 @pytest.fixture
-async def engine():
-    kwargs = {"poolclass": StaticPool} if DB_URL.startswith("sqlite") else {}
-    engine = create_async_engine(DB_URL, **kwargs)
+async def engine(tmp_path):
+    # SQLite — alohida fayl va har sessiyaga o'z ulanishi (PostgreSQL kabi izolyatsiya).
+    # StaticPool bitta ulanishni test va API sessiyalariga bo'lib berardi: Python 3.12 da
+    # API sessiyasining rollback'i test tranzaksiyasini ham bekor qilardi.
+    url, kwargs = DB_URL, {}
+    if DB_URL == "sqlite+aiosqlite://":
+        url = f"sqlite+aiosqlite:///{tmp_path / 'test.db'}"
+        kwargs = {"poolclass": NullPool, "connect_args": {"timeout": 10}}
+    engine = create_async_engine(url, **kwargs)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)

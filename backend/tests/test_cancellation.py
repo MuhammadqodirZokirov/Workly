@@ -46,6 +46,7 @@ def test_worker_terms_and_shrink():
 
 
 async def set_start(db, order_id, delta):
+    db.expire_all()
     order = await db.get(Order, order_id)
     order.starts_at = datetime.now(UTC) + delta
     await db.commit()

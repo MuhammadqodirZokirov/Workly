@@ -44,6 +44,7 @@ async def assigned(client, emp, db, redis, sms, *, start_in=timedelta(minutes=10
     wh = await headers_for(client, db, wid, redis, sms)
     r = await client.post(f"{API}/offers/{offer.id}/accept", headers=wh)
     assert r.status_code == 200, r.text
+    db.expire_all()  # API boshqa sessiyada o'zgartirdi
     order = await db.get(Order, order_id)
     order.starts_at = datetime.now(UTC) + start_in
     await db.commit()
@@ -179,6 +180,7 @@ async def test_late_reminders_and_no_show(client, emp, db, redis, sms):
     t = (await db.get(Order, order_id)).starts_at.replace(tzinfo=UTC)
 
     async def tick_at(delta):
+        db.expire_all()
         svc = WorkdayService(db, now=t + delta)
         stats = await svc.tick()
         await db.commit()
