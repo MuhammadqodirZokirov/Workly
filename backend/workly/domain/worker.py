@@ -34,6 +34,7 @@ class FileKind(StrEnum):
     SELFIE = "selfie"
     QUALIFICATION = "qualification"  # elektrik/santexnik guvohnomasi — "Tasdiqlangan malaka"
     CRIMINAL_RECORD = "criminal_record"  # sudlanmaganlik ma'lumotnomasi — "Tekshirilgan"
+    AVATAR = "avatar"  # ommaviy profil rasmi (selfie emas — u maxfiy)
 
 
 REQUIRED_FILES = {
@@ -78,6 +79,10 @@ class RejectReason(StrEnum):
 class Badge(StrEnum):
     QUALIFIED = "qualified"  # Tasdiqlangan malaka
     BACKGROUND_CHECKED = "background_checked"  # Tekshirilgan (sudlanmaganlik)
+
+
+# 3 ta bahogacha profilda "Yangi" belgisi (TZ 13-bo'lim)
+NEW_BADGE_MAX_REVIEWS = 3
 
 
 def age_on(birth_date: date, today: date) -> int:

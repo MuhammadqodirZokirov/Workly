@@ -62,7 +62,7 @@ ruff check . && ruff format --check .
 
 | Blok (TZ 22) | Holat |
 |---|---|
-| 1. Backend yadrosi: auth, profillar, katalog, hududlar | **Deyarli tayyor**: auth, `/me`, katalog; ishchi profili, jadval, hujjat/selfie yuklash (shifrlangan), verifikatsiya va moderator navbati, audit jurnali. Qolgan: employer profili, ommaviy rezyume |
+| 1. Backend yadrosi: auth, profillar, katalog, hududlar | **Tayyor**: auth, `/me`, katalog; ishchi profili, jadval, hujjatlar (shifrlangan), verifikatsiya; employer profili (jismoniy/biznes) va STIR tekshiruvi; ommaviy rezyume; audit jurnali |
 | 2. Buyurtma, matching, lenta, bot | — |
 | 3. Check-in, yakunlash, baho | — |
 | 4. Web frontend, 3 til | — |
@@ -86,6 +86,11 @@ ruff check . && ruff format --check .
 | PUT | `/api/v1/worker/availability` | Haftalik jadval (kuniga ≤ 3 oraliq, kesishmasin) |
 | POST | `/api/v1/worker/files` | multipart `kind` + `file`: ID karta, pasport, selfie, guvohnoma. JPEG/PNG/WEBP (guvohnomaga PDF), ≤ 5 MB |
 | POST | `/api/v1/worker/verification` | Tekshiruvga yuborish: hujjat turi va raqami. To'liqlikni tekshiradi |
+| GET | `/api/v1/workers/{id}` | Ommaviy rezyume (faqat employer/moderator, faqat tasdiqlangan ishchi): "Jasur T.", avatar, ko'nikmalar, tumanlar, belgilar, statistika. Telefon, hujjat, manzil yashirin |
+| GET, PUT | `/api/v1/employer/profile` | Jismoniy shaxs yoki biznes (kompaniya, STIR, faoliyat, manzil, tuman) |
+| POST | `/api/v1/employer/verification` | Biznesni STIR tekshiruviga yuborish |
+| GET | `/api/v1/admin/employers` | Biznes tekshiruvi navbati (shu STIR bilan boshqa akkauntlar ko'rsatiladi) |
+| POST | `/api/v1/admin/employers/{user_id}/approve`, `/reject` | "Tasdiqlangan ish beruvchi" belgisi yoki rad sababi |
 | GET | `/api/v1/admin/verifications` | Moderator navbati (eng eskisi birinchi), takroriy hujjat belgisi |
 | GET | `/api/v1/admin/verifications/{user_id}` | Hujjat raqami va 5 daqiqalik imzoli fayl havolalari; audit jurnaliga yoziladi |
 | POST | `/api/v1/admin/verifications/{user_id}/approve`, `/reject` | Belgilar (`qualified`, `background_checked`) yoki rad sababi shabloni; ishchiga bot/SMS xabar |

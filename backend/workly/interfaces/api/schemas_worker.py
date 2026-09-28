@@ -24,7 +24,9 @@ class SkillIn(BaseModel):
 class WorkerProfileIn(BaseModel):
     """Qisman yangilash: yuborilmagan maydon o'zgarmaydi; home_point/emergency_contact = null — o'chiradi."""
 
-    full_name: str | None = Field(default=None, max_length=200)
+    last_name: str | None = Field(default=None, max_length=60)
+    first_name: str | None = Field(default=None, max_length=60)
+    middle_name: str | None = Field(default=None, max_length=60)
     birth_date: date | None = None
     gender: Gender | None = None
     district_ids: list[int] | None = Field(default=None, max_length=30)
@@ -68,6 +70,9 @@ class VerificationOut(BaseModel):
 
 class WorkerProfileOut(BaseModel):
     user_id: int
+    last_name: str | None
+    first_name: str | None
+    middle_name: str | None
     full_name: str | None
     birth_date: date | None
     gender: Gender | None
@@ -87,6 +92,9 @@ class WorkerProfileOut(BaseModel):
             spec_by_cat.setdefault(sp.category_id, []).append(sp.specialization_id)
         return cls(
             user_id=p.user_id,
+            last_name=p.last_name,
+            first_name=p.first_name,
+            middle_name=p.middle_name,
             full_name=p.user.full_name,
             birth_date=p.birth_date,
             gender=p.gender,
@@ -163,3 +171,31 @@ class RejectIn(BaseModel):
         if self.comment is not None:
             self.comment = self.comment.strip() or None
         return self
+
+
+# ---------- ommaviy rezyume ----------
+class ResumeSkill(BaseModel):
+    category_id: int
+    experience: Experience
+    specialization_ids: list[int]
+
+
+class ResumeStats(BaseModel):
+    rating: float | None
+    reviews_count: int
+    reliability: int
+    completed_jobs: int
+    no_shows_90d: int
+    avg_response_minutes: float | None
+
+
+class ResumeOut(BaseModel):
+    worker_id: int
+    display_name: str | None
+    avatar_url: str | None
+    is_new: bool
+    badges: list[Badge]
+    skills: list[ResumeSkill]
+    district_ids: list[int]
+    stats: ResumeStats
+    recent_reviews: list = []

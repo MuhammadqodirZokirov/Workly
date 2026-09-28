@@ -24,7 +24,9 @@ async def get_profile(user: CurrentUser, db: DbDep):
 async def put_profile(body: WorkerProfileIn, user: CurrentUser, db: DbDep):
     sent = body.model_fields_set
     data = ProfileInput(
-        full_name=body.full_name,
+        last_name=body.last_name,
+        first_name=body.first_name,
+        middle_name=body.middle_name,
         birth_date=body.birth_date,
         gender=body.gender,
         district_ids=body.district_ids,

@@ -5,6 +5,8 @@ from sqlalchemy import select
 
 from workly.infrastructure.db.models import AuditLog, StateTransition, User, UserRole, WorkerProfile
 
+from .conftest import complete_worker, full_profile
+
 API = "/api/v1"
 
 
@@ -15,68 +17,6 @@ def _blobs(root: str) -> list[Path]:
 JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 200
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 200
 PDF = b"%PDF-1.7\n" + b"\x00" * 200
-
-
-@pytest.fixture
-async def catalog(client):
-    cats = {c["code"]: c for c in (await client.get(f"{API}/catalog/categories")).json()}
-    districts = (await client.get(f"{API}/catalog/districts")).json()
-    return cats, districts
-
-
-@pytest.fixture
-async def worker(client, login, redis):
-    """Ishchi rolidagi, roziliklari berilgan foydalanuvchi."""
-
-    async def _make(phone="+998901234567"):
-        await redis.delete(f"otp:cooldown:{phone}")
-        body, h = await login(phone)
-        await client.post(f"{API}/me/roles", json={"role": "worker"}, headers=h)
-        await client.post(
-            f"{API}/me/consents",
-            headers=h,
-            json={"items": [{"doc_type": d, "version": "1.0"} for d in ("terms", "privacy", "worker_contract")]},
-        )
-        return body["user"]["id"], h
-
-    return _make
-
-
-def full_profile(cats, districts):
-    c = cats["construction"]
-    return {
-        "full_name": "Jasur  Toshmatov",
-        "birth_date": "1995-05-10",
-        "gender": "male",
-        "district_ids": [districts[0]["id"], districts[1]["id"]],
-        "home_point": {"lat": 41.31, "lon": 69.24},
-        "skills": [
-            {
-                "category_id": c["id"],
-                "experience": "3_5",
-                "specialization_ids": [c["specializations"][0]["id"], c["specializations"][5]["id"]],
-            }
-        ],
-        "emergency_contact": {"name": "Ota", "phone": "+998907654321"},
-    }
-
-
-async def complete_worker(client, h, cats, districts):
-    assert (await client.put(f"{API}/worker/profile", json=full_profile(cats, districts), headers=h)).status_code == 200
-    for kind in ("id_card_front", "id_card_back", "selfie"):
-        r = await client.post(
-            f"{API}/worker/files", headers=h, data={"kind": kind}, files={"file": ("a.jpg", JPEG, "image/jpeg")}
-        )
-        assert r.status_code == 201, r.text
-
-
-@pytest.fixture
-async def moderator(client, login, redis, db):
-    await redis.delete("otp:cooldown:+998909999999")
-    body, h = await login("+998909999999")
-    db.add(UserRole(user_id=body["user"]["id"], role="moderator"))
-    await db.commit()
-    return body["user"]["id"], h
 
 
 # ---------------- profil ----------------
@@ -92,7 +32,8 @@ async def test_profile_roundtrip(client, worker, catalog):
     r = await client.put(f"{API}/worker/profile", json=full_profile(cats, districts), headers=h)
     assert r.status_code == 200, r.text
     p = r.json()
-    assert p["full_name"] == "Jasur Toshmatov"
+    assert p["full_name"] == "Toshmatov Jasur Alisher o'g'li"  # hujjatdagi tartib
+    assert (p["last_name"], p["first_name"]) == ("Toshmatov", "Jasur")
     assert p["skills"][0]["experience"] == "3_5" and len(p["skills"][0]["specialization_ids"]) == 2
     assert p["home_point"] == {"lat": 41.31, "lon": 69.24}
     assert p["verification"]["status"] == "not_submitted"
@@ -111,6 +52,7 @@ async def test_profile_roundtrip(client, worker, catalog):
         ({"district_ids": [99999]}, "INVALID_DISTRICT"),
         ({"district_ids": []}, "DISTRICTS_REQUIRED"),
         ({"emergency_contact": {"phone": "+998901234567"}}, "INVALID_EMERGENCY"),
+        ({"first_name": "Jasur2"}, "INVALID_NAME"),
     ],
 )
 async def test_profile_validation(client, worker, patch, code):
@@ -230,7 +172,16 @@ async def test_submit_incomplete(client, worker):
     )
     assert r.status_code == 422 and r.json()["code"] == "PROFILE_INCOMPLETE"
     missing = r.json()["details"]
-    assert {"birth_date", "gender", "skills", "districts", "file:selfie", "file:id_card_front"} <= set(missing)
+    assert {
+        "last_name",
+        "first_name",
+        "birth_date",
+        "gender",
+        "skills",
+        "districts",
+        "file:selfie",
+        "file:id_card_front",
+    } <= set(missing)
 
 
 async def test_submit_and_locks(client, worker, catalog, db):
@@ -249,7 +200,7 @@ async def test_submit_and_locks(client, worker, catalog, db):
     # tekshiruv davomida hujjat va shaxsiy ma'lumot o'zgarmaydi, qayta yuborib bo'lmaydi
     r = await client.post(f"{API}/worker/files", headers=h, data={"kind": "selfie"}, files={"file": ("a", JPEG)})
     assert r.status_code == 409 and r.json()["code"] == "FILES_LOCKED"
-    r = await client.put(f"{API}/worker/profile", json={"full_name": "Boshqa Odam"}, headers=h)
+    r = await client.put(f"{API}/worker/profile", json={"last_name": "Boshqayev"}, headers=h)
     assert r.status_code == 409 and r.json()["code"] == "PROFILE_LOCKED"
     r = await client.put(f"{API}/worker/profile", json={"district_ids": [districts[2]["id"]]}, headers=h)
     assert r.status_code == 200  # tumanlarni o'zgartirish mumkin

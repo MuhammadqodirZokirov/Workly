@@ -9,6 +9,7 @@ from sqlalchemy.pool import StaticPool
 from workly.infrastructure.config import Settings
 from workly.infrastructure.db import models  # noqa: F401
 from workly.infrastructure.db.base import Base
+from workly.infrastructure.db.models import UserRole
 from workly.infrastructure.db.session import make_sessionmaker
 from workly.infrastructure.seed import seed
 from workly.infrastructure.storage import EncryptedLocalStorage
@@ -40,6 +41,9 @@ class FakeNotifier:
 
     async def verification_result(self, user_id: int, approved: bool, reason: str | None) -> None:
         self.calls.append((user_id, approved, reason))
+
+    async def business_verification_result(self, user_id: int, approved: bool, reason: str | None) -> None:
+        self.calls.append(("business", user_id, approved, reason))
 
 
 @pytest.fixture
@@ -128,3 +132,72 @@ async def login(client, sms):
         return body, {"Authorization": f"Bearer {body['access_token']}"}
 
     return _login
+
+
+# ---------------- umumiy ishchi/moderator fixture'lari ----------------
+@pytest.fixture
+async def catalog(client):
+    cats = {c["code"]: c for c in (await client.get("/api/v1/catalog/categories")).json()}
+    districts = (await client.get("/api/v1/catalog/districts")).json()
+    return cats, districts
+
+
+@pytest.fixture
+async def worker(client, login, redis):
+    """Ishchi rolidagi, roziliklari berilgan foydalanuvchi."""
+
+    async def _make(phone="+998901234567"):
+        await redis.delete(f"otp:cooldown:{phone}")
+        body, h = await login(phone)
+        await client.post("/api/v1/me/roles", json={"role": "worker"}, headers=h)
+        await client.post(
+            "/api/v1/me/consents",
+            headers=h,
+            json={"items": [{"doc_type": d, "version": "1.0"} for d in ("terms", "privacy", "worker_contract")]},
+        )
+        return body["user"]["id"], h
+
+    return _make
+
+
+def full_profile(cats, districts):
+    c = cats["construction"]
+    return {
+        "last_name": "Toshmatov",
+        "first_name": "Jasur ",
+        "middle_name": "Alisher o'g'li",
+        "birth_date": "1995-05-10",
+        "gender": "male",
+        "district_ids": [districts[0]["id"], districts[1]["id"]],
+        "home_point": {"lat": 41.31, "lon": 69.24},
+        "skills": [
+            {
+                "category_id": c["id"],
+                "experience": "3_5",
+                "specialization_ids": [c["specializations"][0]["id"], c["specializations"][5]["id"]],
+            }
+        ],
+        "emergency_contact": {"name": "Ota", "phone": "+998907654321"},
+    }
+
+
+async def complete_worker(client, h, cats, districts):
+    from .test_worker import JPEG
+
+    assert (
+        await client.put("/api/v1/worker/profile", json=full_profile(cats, districts), headers=h)
+    ).status_code == 200
+    for kind in ("id_card_front", "id_card_back", "selfie"):
+        r = await client.post(
+            "/api/v1/worker/files", headers=h, data={"kind": kind}, files={"file": ("a.jpg", JPEG, "image/jpeg")}
+        )
+        assert r.status_code == 201, r.text
+
+
+@pytest.fixture
+async def moderator(client, login, redis, db):
+    await redis.delete("otp:cooldown:+998909999999")
+    body, h = await login("+998909999999")
+    db.add(UserRole(user_id=body["user"]["id"], role="moderator"))
+    await db.commit()
+    return body["user"]["id"], h

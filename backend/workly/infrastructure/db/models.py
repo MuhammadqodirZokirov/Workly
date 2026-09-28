@@ -145,6 +145,10 @@ class WorkerProfile(TimestampMixin, Base):
     __tablename__ = "worker_profiles"
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    # Hujjatdagidek; users.full_name = "Familiya Ism Otasining ismi"
+    last_name: Mapped[str | None] = mapped_column(String(60))
+    first_name: Mapped[str | None] = mapped_column(String(60))
+    middle_name: Mapped[str | None] = mapped_column(String(60))
     birth_date: Mapped[date | None] = mapped_column(Date)
     gender: Mapped[str | None] = mapped_column(String(8))
     # TODO(2-blok, matching): PostGIS geography(Point) ga o'tkazish
@@ -265,3 +269,34 @@ class AuditLog(Base):
     after: Mapped[dict | None] = mapped_column(JSON)
     ip: Mapped[str | None] = mapped_column(String(45))
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+
+# ---------------- Ish beruvchi (TZ 5-bo'lim) ----------------
+class EmployerProfile(TimestampMixin, Base):
+    __tablename__ = "employer_profiles"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    type: Mapped[str] = mapped_column(String(16), default="individual")
+    # biznes
+    company_name: Mapped[str | None] = mapped_column(String(200))
+    stir: Mapped[str | None] = mapped_column(String(9), index=True)
+    activity: Mapped[str | None] = mapped_column(String(200))
+    # manzil (jismoniy shaxsda ixtiyoriy)
+    address_text: Mapped[str | None] = mapped_column(String(300))
+    district_id: Mapped[int | None] = mapped_column(ForeignKey("districts.id"))
+    lat: Mapped[float | None] = mapped_column(Float)
+    lon: Mapped[float | None] = mapped_column(Float)
+    # biznes STIR tekshiruvi
+    business_status: Mapped[str] = mapped_column(String(16), default="not_submitted", index=True)
+    submitted_at: Mapped[datetime | None]
+    verified_at: Mapped[datetime | None]
+    verified_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    rejection_reason: Mapped[str | None] = mapped_column(String(32))
+    rejection_comment: Mapped[str | None] = mapped_column(String(500))
+    badges: Mapped[list[str]] = mapped_column(JSON, default=list)
+
+    user: Mapped[User] = relationship(foreign_keys=[user_id], lazy="joined")
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("badges", [])
+        super().__init__(**kwargs)

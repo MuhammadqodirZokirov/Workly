@@ -40,3 +40,9 @@ class BotNotifier:
             await self._send(user_id, "verification_approved")
         else:
             await self._send(user_id, "verification_rejected", f"reason_{reason}")
+
+    async def business_verification_result(self, user_id: int, approved: bool, reason: str | None) -> None:
+        if approved:
+            await self._send(user_id, "business_approved")
+        else:
+            await self._send(user_id, "business_rejected", f"business_reason_{reason}")

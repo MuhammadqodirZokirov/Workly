@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from workly.domain.errors import Forbidden, InvalidState, NotFound, ValidationFailed
+from workly.domain.names import clean_name, document_full_name
 from workly.domain.phone import normalize_phone
 from workly.domain.users import ConsentDoc, Role
 from workly.domain.worker import (
@@ -44,7 +45,7 @@ TASHKENT = ZoneInfo("Asia/Tashkent")
 REQUIRED_CONSENTS = {ConsentDoc.TERMS, ConsentDoc.PRIVACY, ConsentDoc.WORKER_CONTRACT}
 MAX_SLOTS_PER_DAY = 3
 # Tasdiqlangandan keyin hujjatdagi ma'lumotlarni o'zgartirib bo'lmaydi (qayta tekshiruvsiz)
-LOCKED_WHEN_VERIFIED = ("full_name", "birth_date", "gender")
+LOCKED_WHEN_VERIFIED = ("last_name", "first_name", "middle_name", "birth_date", "gender")
 # Tekshiruv davomida fayl va hujjat o'zgarmasin
 EDITABLE_FILE_STATES = {VerificationStatus.NOT_SUBMITTED, VerificationStatus.REJECTED, VerificationStatus.EXPIRED}
 
@@ -62,7 +63,9 @@ class SkillInput:
 
 @dataclass
 class ProfileInput:
-    full_name: str | None = None
+    last_name: str | None = None
+    first_name: str | None = None
+    middle_name: str | None = None
     birth_date: date | None = None
     gender: Gender | None = None
     district_ids: list[int] | None = None
@@ -118,11 +121,12 @@ class WorkerService:
                     details={"fields": changed},
                 )
 
-        if data.full_name is not None:
-            name = " ".join(data.full_name.split())
-            if len(name) < 3:
-                raise ValidationFailed("F.I.Sh to'liq kiritilsin", code="INVALID_FULL_NAME")
-            user.full_name = name
+        for field in ("last_name", "first_name", "middle_name"):
+            value = getattr(data, field)
+            if value is not None:
+                setattr(profile, field, clean_name(value, field) if value.strip() else None)
+        if profile.first_name and profile.last_name:
+            user.full_name = document_full_name(profile.last_name, profile.first_name, profile.middle_name)
         if data.birth_date is not None:
             ensure_adult(data.birth_date, today_tashkent())
             profile.birth_date = data.birth_date
@@ -151,10 +155,9 @@ class WorkerService:
         new = getattr(data, field)
         if new is None:
             return False
-        old = user.full_name if field == "full_name" else getattr(profile, field)
-        if field == "full_name":
-            new = " ".join(new.split())
-        return new != old
+        if isinstance(new, str):
+            new = " ".join(new.split()) or None
+        return new != getattr(profile, field)
 
     async def _set_districts(self, profile: WorkerProfile, ids: list[int]) -> None:
         ids = list(dict.fromkeys(ids))
@@ -259,7 +262,11 @@ class WorkerService:
         Eski nusxalarni chaqiruvchi commit'dan KEYIN o'chiradi — rollback bo'lsa ma'lumot yo'qolmasin."""
         profile = await self.get_profile(user, create=True)
         extra_kinds = {FileKind.QUALIFICATION, FileKind.CRIMINAL_RECORD}
-        if kind not in extra_kinds and VerificationStatus(profile.verification_status) not in EDITABLE_FILE_STATES:
+        # Avatar va qo'shimcha hujjatlar tekshiruvdan keyin ham yangilanadi
+        if (
+            kind not in extra_kinds | {FileKind.AVATAR}
+            and VerificationStatus(profile.verification_status) not in EDITABLE_FILE_STATES
+        ):
             raise InvalidState("Hujjatlar tekshiruvda yoki tasdiqlangan — o'zgartirib bo'lmaydi", code="FILES_LOCKED")
         if not data:
             raise ValidationFailed("Fayl bo'sh", code="EMPTY_FILE")
@@ -296,8 +303,10 @@ class WorkerService:
         ensure_transition(profile.verification_status, VerificationStatus.PENDING)
 
         missing = []
-        if not user.full_name:
-            missing.append("full_name")
+        if not profile.last_name:
+            missing.append("last_name")
+        if not profile.first_name:
+            missing.append("first_name")
         if profile.birth_date is None:
             missing.append("birth_date")
         if profile.gender is None:

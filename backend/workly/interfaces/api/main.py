@@ -14,7 +14,18 @@ from workly.infrastructure.sms import ConsoleSmsSender, EskizSmsSender, SmsSende
 from workly.infrastructure.storage import EncryptedLocalStorage
 
 from .errors import install_error_handlers
-from .routers import admin_verification, auth, catalog, files, me, webhooks, worker
+from .routers import (
+    admin_employers,
+    admin_verification,
+    auth,
+    catalog,
+    employer,
+    files,
+    me,
+    webhooks,
+    worker,
+    workers_public,
+)
 
 log = logging.getLogger(__name__)
 
@@ -95,16 +106,20 @@ def create_app(settings: Settings | None = None, *, use_lifespan: bool = True) -
     install_error_handlers(app)
 
     api = APIRouter(prefix="/api/v1")
-    for r in (
-        auth.router,
-        me.router,
-        catalog.router,
-        worker.router,
-        admin_verification.router,
-        files.router,
-        webhooks.router,
-    ):
-        api.include_router(r)
+    routers = (
+        auth,
+        me,
+        catalog,
+        worker,
+        workers_public,
+        employer,
+        admin_verification,
+        admin_employers,
+        files,
+        webhooks,
+    )
+    for module in routers:
+        api.include_router(module.router)
     app.include_router(api)
 
     @app.get("/health", include_in_schema=False)

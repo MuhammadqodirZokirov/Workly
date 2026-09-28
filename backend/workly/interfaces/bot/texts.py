@@ -26,6 +26,11 @@ _LATN = {
     "reason_doc_expired": "hujjat muddati o'tgan",
     "reason_duplicate": "bu hujjat bilan boshqa akkaunt mavjud",
     "reason_other": "moderator izohini ilovada ko'ring",
+    "business_approved": '✅ Kompaniyangiz tasdiqlandi. Profilda "Tasdiqlangan ish beruvchi" belgisi paydo bo\'ldi.',
+    "business_rejected": "❌ Kompaniya tasdiqlanmadi.\nSabab: {0}\n\nIlovada ma'lumotni tuzatib, qayta yuboring.",
+    "business_reason_stir_invalid": "STIR topilmadi yoki faol emas",
+    "business_reason_company_mismatch": "kompaniya nomi STIR ga mos emas",
+    "business_reason_other": "moderator izohini ilovada ko'ring",
 }
 
 _RU = {
@@ -51,6 +56,13 @@ _RU = {
     "reason_doc_expired": "срок действия документа истёк",
     "reason_duplicate": "с этим документом уже есть другой аккаунт",
     "reason_other": "см. комментарий модератора в приложении",
+    "business_approved": "✅ Компания подтверждена. В профиле появился значок «Проверенный работодатель».",
+    "business_rejected": (
+        "❌ Компания не подтверждена.\nПричина: {0}\n\nИсправьте данные в приложении и отправьте снова."
+    ),
+    "business_reason_stir_invalid": "ИНН не найден или неактивен",
+    "business_reason_company_mismatch": "название компании не соответствует ИНН",
+    "business_reason_other": "см. комментарий модератора в приложении",
 }
 
 # Brend nomi va HTML teglar transliteratsiya qilinmaydi
