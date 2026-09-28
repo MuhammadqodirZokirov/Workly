@@ -1,0 +1,40 @@
+from functools import lru_cache
+from typing import Literal
+
+from pydantic import SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    env: Literal["dev", "test", "staging", "prod"] = "dev"
+    database_url: str = "postgresql+asyncpg://rabotago:rabotago@localhost:5432/rabotago"
+    redis_url: str = "redis://localhost:6379/0"
+
+    jwt_secret: SecretStr
+    jwt_access_ttl_min: int = 15
+    jwt_refresh_ttl_days: int = 30
+
+    # Telegram
+    bot_token: SecretStr
+    bot_mode: Literal["polling", "webhook", "off"] = "polling"
+    public_base_url: str | None = None  # webhook uchun, masalan https://api.rabotago.uz
+    bot_webhook_secret: SecretStr | None = None
+    webapp_url: str = "https://example.com"
+    telegram_auth_max_age: int = 24 * 3600
+    admins: list[int] = []  # JSON: [123, 456]
+
+    # SMS
+    sms_provider: Literal["console", "eskiz"] = "console"
+    eskiz_email: str | None = None
+    eskiz_password: SecretStr | None = None
+    eskiz_from: str = "4546"
+
+    auth_rate_limit_per_min: int = 5
+    cors_origins: list[str] = []
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
