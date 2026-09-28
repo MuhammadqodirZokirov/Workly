@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     data_hash_key: SecretStr  # hujjat raqami hash'i uchun (takrorni topish)
     media_dir: str = "./media"  # Faza 1-lite: shifrlangan fayllar diskda; o'sishda MinIO
     signed_url_ttl: int = 300
+
+    # Faza 1-lite pilot bepul: komissiya yo'q (TZ 22). YaTT ochilgach yoqiladi.
+    commission_enabled: bool = False
     max_upload_mb: int = 5
     cors_origins: list[str] = []
 

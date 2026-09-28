@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from workly.domain.translit import latin_to_cyrillic
 
 from .config import get_settings
-from .db.models import Category, District, Region, Specialization
+from .db.models import Category, District, PriceConfigRow, Region, Specialization
 from .db.session import make_engine, make_sessionmaker
 
 # (code, lotin, rus, faol)
@@ -132,6 +132,17 @@ CATEGORIES = [
 ]
 
 
+# Faza 1 bazaviy narxlar (TZ 8-bo'lim): (kategoriya, mutaxassislik | None, birlik, bazaviy so'm)
+# Uy xizmatlari narxini admin kiritadi — seed'da yo'q, narx bo'lmasa buyurtma berib bo'lmaydi.
+PRICES = [
+    ("construction", None, "day", 150_000),
+    ("construction", "master", "day", 250_000),
+    ("cargo", None, "day", 130_000),
+    ("other", None, "day", 120_000),
+    ("farming", None, "day", 100_000),
+]
+
+
 def _names(latn: str, ru: str) -> dict:
     return {"name_uz_latn": latn, "name_uz_cyrl": latin_to_cyrillic(latn), "name_ru": ru}
 
@@ -163,6 +174,34 @@ async def seed(session: AsyncSession) -> None:
         for j, (s_code, s_latn, s_ru) in enumerate(specs):
             if s_code not in spec_codes:
                 session.add(Specialization(category_id=cat.id, code=s_code, sort_order=j, **_names(s_latn, s_ru)))
+    await session.flush()
+    await _seed_prices(session)
+
+
+async def _seed_prices(session: AsyncSession) -> None:
+    from workly.domain.pricing import PriceConfig, PriceUnit
+
+    if await session.scalar(select(PriceConfigRow.id).limit(1)) is not None:
+        return  # narxlar bor — admin o'zgartirgan bo'lishi mumkin
+    cats = {c.code: c for c in (await session.scalars(select(Category))).all()}
+    for cat_code, spec_code, unit, base in PRICES:
+        cat = cats[cat_code]
+        spec_id = None
+        if spec_code:
+            spec_id = await session.scalar(
+                select(Specialization.id).where(Specialization.category_id == cat.id, Specialization.code == spec_code)
+            )
+        cfg = PriceConfig.from_base(PriceUnit(unit), base)
+        session.add(
+            PriceConfigRow(
+                category_id=cat.id,
+                specialization_id=spec_id,
+                unit=cfg.unit,
+                base=cfg.base,
+                min_price=cfg.min_price,
+                max_price=cfg.max_price,
+            )
+        )
     await session.flush()
 
 

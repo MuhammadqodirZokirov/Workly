@@ -63,7 +63,7 @@ ruff check . && ruff format --check .
 | Blok (TZ 22) | Holat |
 |---|---|
 | 1. Backend yadrosi: auth, profillar, katalog, hududlar | **Tayyor**: auth, `/me`, katalog; ishchi profili, jadval, hujjatlar (shifrlangan), verifikatsiya; employer profili (jismoniy/biznes) va STIR tekshiruvi; ommaviy rezyume; audit jurnali |
-| 2. Buyurtma, matching, lenta, bot | — |
+| 2. Buyurtma, matching, lenta, bot | **Boshlandi**: narxlash (Faza 1, TZ 8), buyurtma yaratish (15 daqiqalik narx, idempotency), ro'yxat, bekor qilish, takrorlash, admin narxlari. Qolgan: matching, to'lqinlar, lenta, bot tugmalari |
 | 3. Check-in, yakunlash, baho | — |
 | 4. Web frontend, 3 til | — |
 | 5. Admin: Refine + admin bot | — |
@@ -91,6 +91,12 @@ ruff check . && ruff format --check .
 | POST | `/api/v1/employer/verification` | Biznesni STIR tekshiruviga yuborish |
 | GET | `/api/v1/admin/employers` | Biznes tekshiruvi navbati (shu STIR bilan boshqa akkauntlar ko'rsatiladi) |
 | POST | `/api/v1/admin/employers/{user_id}/approve`, `/reject` | "Tasdiqlangan ish beruvchi" belgisi yoki rad sababi |
+| POST | `/api/v1/orders/quote` | Narx: ishchi narxi, jami, servis haqi, "Siz olasiz", tungi ish belgisi, bekor qilish qoidalari. 15 daqiqa amal qiladi |
+| POST | `/api/v1/orders` | `quote_id` + `accept_rules`, `Idempotency-Key` sarlavhasi majburiy. Birinchi buyurtma ≤ 3 ishchi; yangi employerda 10+ — admin tasdig'i |
+| GET | `/api/v1/orders`, `/orders/{id}` | O'z buyurtmalari |
+| POST | `/api/v1/orders/{id}/cancel`, `/repeat` | Bekor qilish (hozircha tayinlovgacha); oldingi parametrlar bilan yangi narx |
+| GET, POST | `/api/v1/admin/prices` | Narx versiyalari (kategoriya yoki mutaxassislik; min/max default ×0.75 / ×2) |
+| POST | `/api/v1/admin/orders/{id}/approve` | Katta buyurtmani tasdiqlash |
 | GET | `/api/v1/admin/verifications` | Moderator navbati (eng eskisi birinchi), takroriy hujjat belgisi |
 | GET | `/api/v1/admin/verifications/{user_id}` | Hujjat raqami va 5 daqiqalik imzoli fayl havolalari; audit jurnaliga yoziladi |
 | POST | `/api/v1/admin/verifications/{user_id}/approve`, `/reject` | Belgilar (`qualified`, `background_checked`) yoki rad sababi shabloni; ishchiga bot/SMS xabar |

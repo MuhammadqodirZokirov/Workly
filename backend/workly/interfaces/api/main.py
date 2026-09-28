@@ -15,6 +15,7 @@ from workly.infrastructure.storage import EncryptedLocalStorage
 
 from .errors import install_error_handlers
 from .routers import (
+    admin_catalog,
     admin_employers,
     admin_verification,
     auth,
@@ -22,6 +23,7 @@ from .routers import (
     employer,
     files,
     me,
+    orders,
     webhooks,
     worker,
     workers_public,
@@ -113,8 +115,10 @@ def create_app(settings: Settings | None = None, *, use_lifespan: bool = True) -
         worker,
         workers_public,
         employer,
+        orders,
         admin_verification,
         admin_employers,
+        admin_catalog,
         files,
         webhooks,
     )

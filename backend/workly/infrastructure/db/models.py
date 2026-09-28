@@ -300,3 +300,75 @@ class EmployerProfile(TimestampMixin, Base):
     def __init__(self, **kwargs):
         kwargs.setdefault("badges", [])
         super().__init__(**kwargs)
+
+
+# ---------------- Narx va buyurtma (TZ 5–8-bo'limlar) ----------------
+class PriceConfigRow(Base):
+    """Narx sozlamasi versiyasi. Yangi narx — yangi qator (active_from); eski buyurtmalar o'z nusxasini saqlaydi."""
+
+    __tablename__ = "price_configs"
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), index=True)
+    specialization_id: Mapped[int | None] = mapped_column(ForeignKey("specializations.id"))  # null — kategoriya
+    unit: Mapped[str] = mapped_column(String(8))
+    base: Mapped[int] = mapped_column(BigInteger)
+    min_price: Mapped[int] = mapped_column(BigInteger)
+    max_price: Mapped[int] = mapped_column(BigInteger)
+    min_order_amount: Mapped[int] = mapped_column(BigInteger, default=0)
+    active_from: Mapped[datetime] = mapped_column(default=utcnow)
+    created_by: Mapped[int | None] = mapped_column(BigInteger)
+
+
+class Order(TimestampMixin, Base):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    employer_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
+    specialization_id: Mapped[int] = mapped_column(ForeignKey("specializations.id"))
+    workers_count: Mapped[int] = mapped_column(SmallInteger)
+    starts_at: Mapped[datetime] = mapped_column(index=True)
+    duration: Mapped[str | None] = mapped_column(String(12))
+    days: Mapped[int] = mapped_column(SmallInteger, default=1)
+    volume: Mapped[str | None] = mapped_column(String(16))  # Decimal matn ko'rinishida
+    is_night: Mapped[bool] = mapped_column(Boolean, default=False)
+    # manzil (TODO(matching): PostGIS geography)
+    lat: Mapped[float] = mapped_column(Float)
+    lon: Mapped[float] = mapped_column(Float)
+    district_id: Mapped[int] = mapped_column(ForeignKey("districts.id"), index=True)
+    address_text: Mapped[str] = mapped_column(String(300))
+    landmark: Mapped[str | None] = mapped_column(String(200))
+    description: Mapped[str | None] = mapped_column(String(500))
+    tools_by: Mapped[str] = mapped_column(String(10), default="employer")
+    lunch: Mapped[bool] = mapped_column(Boolean, default=False)
+    transport: Mapped[bool] = mapped_column(Boolean, default=False)
+    top_only: Mapped[bool] = mapped_column(Boolean, default=False)
+    payment_mode: Mapped[str] = mapped_column(String(8), default="cash")
+    price: Mapped[dict] = mapped_column(JSON)  # narx nusxasi: sozlama o'zgarsa buyurtma o'zgarmaydi
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    cancelled_at: Mapped[datetime | None]
+    cancel_reason: Mapped[str | None] = mapped_column(String(300))
+
+    assignments: Mapped[list["Assignment"]] = relationship(
+        back_populates="order", lazy="selectin", cascade="all, delete-orphan", order_by="Assignment.slot_no"
+    )
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("assignments", [])
+        super().__init__(**kwargs)
+
+
+class Assignment(TimestampMixin, Base):
+    """Buyurtmadagi bitta ishchi o'rni. Ko'p kunlik ishda kunlar keyingi bosqichda (assignment_days)."""
+
+    __tablename__ = "assignments"
+    __table_args__ = (UniqueConstraint("order_id", "slot_no"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    slot_no: Mapped[int] = mapped_column(SmallInteger)
+    worker_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="open", index=True)
+
+    order: Mapped[Order] = relationship(back_populates="assignments")
