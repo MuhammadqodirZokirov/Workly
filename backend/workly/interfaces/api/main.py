@@ -18,6 +18,7 @@ from .routers import (
     admin_auth,
     admin_catalog,
     admin_employers,
+    admin_ops,
     admin_verification,
     assignments,
     auth,
@@ -138,6 +139,7 @@ def create_app(settings: Settings | None = None, *, use_lifespan: bool = True) -
         admin_verification,
         admin_employers,
         admin_catalog,
+        admin_ops,
         files,
         webhooks,
     )

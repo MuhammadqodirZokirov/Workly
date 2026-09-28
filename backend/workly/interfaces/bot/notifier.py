@@ -183,6 +183,7 @@ class BotNotifier:
         "problem": "a",
         "order_cancelled": "w",
         "cancel_warning": "w",
+        "dispute_resolved": "we",
     }
 
     async def workday_event(self, assignment_id: int, kind: str) -> None:

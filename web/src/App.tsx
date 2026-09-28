@@ -4,6 +4,7 @@ import { AppLayout } from "./components/shared";
 import { FullScreenLoader } from "./components/ui";
 import { useAuth } from "./lib/auth";
 import { AdminGate, BusinessQueue, VerificationCase, VerificationQueue } from "./pages/admin/AdminPanel";
+import { AdminOrderDetail, AdminOrders, AdminPrices, AdminUsers, OpsBoard } from "./pages/admin/Ops";
 import EmployerHome from "./pages/employer/EmployerHome";
 import NewOrder from "./pages/employer/NewOrder";
 import Orders, { OrderDetail } from "./pages/employer/Orders";
@@ -75,7 +76,12 @@ const router = createBrowserRouter([
     path: "/admin",
     element: <AdminGate />,
     children: [
-      { index: true, element: <Navigate to="/admin/verifications" replace /> },
+      { index: true, element: <Navigate to="/admin/board" replace /> },
+      { path: "board", element: <OpsBoard /> },
+      { path: "orders", element: <AdminOrders /> },
+      { path: "orders/:id", element: <AdminOrderDetail /> },
+      { path: "users", element: <AdminUsers /> },
+      { path: "prices", element: <AdminPrices /> },
       { path: "verifications", element: <VerificationQueue /> },
       { path: "verifications/:id", element: <VerificationCase /> },
       { path: "businesses", element: <BusinessQueue /> },

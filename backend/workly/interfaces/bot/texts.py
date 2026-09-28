@@ -73,6 +73,9 @@ _LATN = {
     "wd_cancel_warning_worker": "⚠️ Bu oyda 3 va undan ko'p marta ishni bekor qildingiz. Takror bo'lsa, takliflar kamayadi.",
     "order_partial_decision_employer": "Buyurtma #{0}: 1 soatdan keyin boshlanadi, hozircha {1} ta ishchi topildi. Ilovada tanlang: topilganlar bilan boshlash yoki kutish.",
     "order_worker_cancelled_employer": "Buyurtma #{0}: ishchi bekor qildi. O'rniga yangi ishchi izlanmoqda.",
+    "wd_dispute_resolved_worker": "Buyurtma #{0}: muammo bo'yicha admin qaror qabul qildi. Tafsilotlar ilovada.",
+    "wd_dispute_resolved_employer": "Buyurtma #{0}: muammo bo'yicha admin qaror qabul qildi. Tafsilotlar ilovada.",
+    "order_cancelled_by_admin_employer": "Buyurtma #{0} administrator tomonidan bekor qilindi. Savollar bo'lsa, qo'llab-quvvatlashga yozing.",
 }
 
 _RU = {
@@ -147,6 +150,9 @@ _RU = {
     "wd_cancel_warning_worker": "⚠️ В этом месяце вы отменили работу 3 и более раз. При повторении предложений станет меньше.",
     "order_partial_decision_employer": "Заказ #{0}: начало через 1 час, найдено работников: {1}. Выберите в приложении: начать с найденными или ждать.",
     "order_worker_cancelled_employer": "Заказ #{0}: работник отменил. Ищем замену.",
+    "wd_dispute_resolved_worker": "Заказ #{0}: администратор принял решение по проблеме. Подробности в приложении.",
+    "wd_dispute_resolved_employer": "Заказ #{0}: администратор принял решение по проблеме. Подробности в приложении.",
+    "order_cancelled_by_admin_employer": "Заказ #{0} отменён администратором. Если есть вопросы, напишите в поддержку.",
 }
 
 # Brend nomi va HTML teglar transliteratsiya qilinmaydi

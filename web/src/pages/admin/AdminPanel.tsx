@@ -84,6 +84,8 @@ function TotpScreen({ onDone }: { onDone: () => void }) {
 function AdminLayout() {
   const me = useQuery({ queryKey: ["admin", "me"], queryFn: () => api<Me>("/admin/me", { admin: true }) });
   const navigate = useNavigate();
+  // Moderator faqat taxta (qo'ng'iroq navbati) va verifikatsiyani ko'radi (TZ 16)
+  const isAdmin = me.data?.roles.some((r) => r === "admin" || r === "super_admin") ?? false;
   const link = (to: string, label: string) => (
     <NavLink
       to={to}
@@ -101,9 +103,13 @@ function AdminLayout() {
       <aside className="border-b border-mist bg-white p-4 md:min-h-screen md:w-64 md:border-b-0 md:border-r">
         <img src="/brand/logo_320.webp" alt="Workly" className="h-8" />
         <p className="mt-1 text-xs text-muted">Admin panel</p>
-        <nav className="mt-6 flex gap-2 md:block md:space-y-1">
+        <nav className="mt-6 flex gap-2 overflow-x-auto md:block md:space-y-1">
+          {link("/admin/board", "Taxta")}
           {link("/admin/verifications", "Verifikatsiya")}
-          {link("/admin/businesses", "Bizneslar")}
+          {isAdmin && link("/admin/orders", "Buyurtmalar")}
+          {isAdmin && link("/admin/users", "Foydalanuvchilar")}
+          {isAdmin && link("/admin/businesses", "Bizneslar")}
+          {isAdmin && link("/admin/prices", "Narxlar")}
         </nav>
         <div className="mt-6 hidden text-sm md:block">
           <p className="font-medium">{me.data?.full_name ?? (me.data?.phone && phonePretty(me.data.phone))}</p>

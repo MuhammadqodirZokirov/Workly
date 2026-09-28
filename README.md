@@ -77,7 +77,7 @@ ruff check . && ruff format --check .
 | 2. Buyurtma, matching, lenta, bot | **Tayyor**: narxlash, buyurtma yaratish; matching (ball, to'lqinlar, sovuq start, sevimlilar to'lqini, bloklar), atomik qabul, ochiq lenta, scheduler (30 s), botda Qabul/Rad; T−60 qisman to'lgan buyurtma tanlovi; employer va ishchi bekor qilishi (TZ 11 jadvali, pilotda faqat Ishonchlilik) |
 | 3. Check-in, yakunlash, baho | **Tayyor**: check-in (GPS ≤ 200 m + jonli selfie, shifrlangan, 30 kunda o'chadi) va employer tasdig'i; kechikish T+15/T+30, T+60 kelmaslik → jarima va almashtirish to'lqini; yakunlash, employer tasdig'i yoki muammo, 24 soatda avtotasdiq; naqd pul qaydi; ikki tomonlama yashirin baho (48 soat), bayes reyting, ishonchlilik indeksi |
 | 4. Web frontend, 3 til | **Boshlandi**: kirish (Telegram / SMS), rol tanlash, ishchi (takliflar, lenta, tayinlovlar, profil va hujjatlar), ish beruvchi (buyurtma + narx, buyurtmalar), 3 til, ish kuni (check-in, tasdiq, baho). Qolgan: xarita, chat, push |
-| 5. Admin: Refine + admin bot | **Boshlandi**: web ilova ichida `/admin` (TOTP 2FA): verifikatsiya va biznes navbati. Qolgan: buyurtmalar, operatsiya taxtasi, narx/kategoriya sozlamalari, admin bot |
+| 5. Admin: Refine + admin bot | **Web panel tayyor** (`/admin`, TOTP 2FA): operatsiya taxtasi (bugungi holat, T+30 qo'ng'iroq navbati, nizolar, to'lmagan buyurtmalar), verifikatsiya, bizneslar, buyurtmalar (qidiruv, vaqt chizig'i, qo'lda tayinlash, jarimasiz bekor qilish), nizo qarori, foydalanuvchilarni bloklash, narxlar. Moderator — faqat taxta va verifikatsiya. Qolgan: admin bot |
 | 6. Test, deploy | CI tayyor; server deploy — keyin |
 
 ## API (hozirgi)
@@ -125,6 +125,12 @@ ruff check . && ruff format --check .
 | GET | `/api/v1/employer/workers` | Men bilan ishlagan ishchilar |
 | PUT, DELETE | `/api/v1/employer/favorites/{worker_id}`, `/blocks/{worker_id}` | Sevimli — alohida birinchi to'lqin; bloklangan — taklif olmaydi |
 | POST, GET | `/api/v1/assignments/{id}/review`, `/reviews` | Baho 1–5 + teglar; ikkala tomon baholaguncha yashirin |
+| GET | `/api/v1/admin/ops/board` | Moderator ham: bugungi raqamlar, T+30 qo'ng'iroq navbati, nizolar |
+| POST | `/api/v1/admin/ops/calls/{assignment_id}` | Qo'ng'iroq qilindi + izoh |
+| GET | `/api/v1/admin/orders`, `/orders/{id}` | Qidiruv (#raqam, telefon), holat, kun; vaqt chizig'i |
+| POST | `/api/v1/admin/orders/{id}/cancel`, `/assign` | Jarimasiz bekor qilish (sabab ≥ 10 belgi); qo'lda tayinlash |
+| POST | `/api/v1/admin/assignments/{id}/resolve` | Nizo qarori: ish hisoblanadimi, sabab, asossiz nizo ochgan tomonga −10 |
+| GET, POST | `/api/v1/admin/users`, `/users/{id}/block`, `/unblock`, `/history` | Qidiruv, bloklash sababi bilan, audit tarixi |
 | POST | `/api/v1/admin/verifications/{user_id}/approve`, `/reject` | Belgilar (`qualified`, `background_checked`) yoki rad sababi shabloni; ishchiga bot/SMS xabar |
 
 Xato formati: `{"code": "...", "message": "...", "details": ...}`.
