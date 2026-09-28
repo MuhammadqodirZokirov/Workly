@@ -8,11 +8,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
 from workly.infrastructure.config import Settings, get_settings
+from workly.infrastructure.crypto import DataCipher
 from workly.infrastructure.db.session import make_engine, make_sessionmaker
 from workly.infrastructure.sms import ConsoleSmsSender, EskizSmsSender, SmsSender
+from workly.infrastructure.storage import EncryptedLocalStorage
 
 from .errors import install_error_handlers
-from .routers import auth, catalog, me, webhooks
+from .routers import admin_verification, auth, catalog, files, me, webhooks, worker
 
 log = logging.getLogger(__name__)
 
@@ -25,16 +27,23 @@ def build_sms(settings: Settings) -> SmsSender:
     return ConsoleSmsSender()
 
 
+def build_cipher(settings: Settings) -> DataCipher:
+    return DataCipher(settings.data_encryption_key.get_secret_value(), settings.data_hash_key.get_secret_value())
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Faza 1-lite: API, bot va (keyinroq) scheduler bitta jarayonda
     from workly.interfaces.bot.factory import create_bot, create_dispatcher, set_default_commands
+    from workly.interfaces.bot.notifier import BotNotifier
 
     settings: Settings = app.state.settings
     engine = make_engine(settings.database_url)
     app.state.maker = make_sessionmaker(engine)
     app.state.redis = Redis.from_url(settings.redis_url)
     app.state.sms = build_sms(settings)
+    app.state.cipher = build_cipher(settings)
+    app.state.storage = EncryptedLocalStorage(settings.media_dir, app.state.cipher)
 
     polling_task = None
     bot = dp = None
@@ -52,6 +61,8 @@ async def lifespan(app: FastAPI):
         else:
             await bot.delete_webhook()
             polling_task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
+
+    app.state.notifier = BotNotifier(bot, app.state.maker, app.state.sms)
 
     try:
         yield
@@ -84,7 +95,15 @@ def create_app(settings: Settings | None = None, *, use_lifespan: bool = True) -
     install_error_handlers(app)
 
     api = APIRouter(prefix="/api/v1")
-    for r in (auth.router, me.router, catalog.router, webhooks.router):
+    for r in (
+        auth.router,
+        me.router,
+        catalog.router,
+        worker.router,
+        admin_verification.router,
+        files.router,
+        webhooks.router,
+    ):
         api.include_router(r)
     app.include_router(api)
 

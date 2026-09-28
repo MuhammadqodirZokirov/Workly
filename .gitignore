@@ -9,3 +9,4 @@ venv/
 build/
 node_modules/
 dist/
+media/

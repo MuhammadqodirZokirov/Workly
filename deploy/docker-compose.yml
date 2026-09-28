@@ -34,6 +34,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-workly}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-workly}
       REDIS_URL: redis://redis:6379/0
+      MEDIA_DIR: /data/media
+    volumes:
+      - media:/data/media  # shifrlangan hujjat va selfie; zaxira nusxaga kiritilsin
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
@@ -43,3 +46,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  media:

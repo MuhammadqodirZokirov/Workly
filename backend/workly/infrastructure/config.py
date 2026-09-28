@@ -32,6 +32,15 @@ class Settings(BaseSettings):
     eskiz_from: str = "4546"
 
     auth_rate_limit_per_min: int = 5
+
+    # Shaxsiy ma'lumotlar (TZ 19-bo'lim)
+    # Fernet kaliti. Yaratish:
+    #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    data_encryption_key: SecretStr
+    data_hash_key: SecretStr  # hujjat raqami hash'i uchun (takrorni topish)
+    media_dir: str = "./media"  # Faza 1-lite: shifrlangan fayllar diskda; o'sishda MinIO
+    signed_url_ttl: int = 300
+    max_upload_mb: int = 5
     cors_origins: list[str] = []
 
 

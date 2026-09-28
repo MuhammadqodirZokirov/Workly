@@ -42,3 +42,5 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://workly:workly@localhost:5432/workly_test
           JWT_SECRET: ci
           BOT_TOKEN: "1:ci"
+          DATA_ENCRYPTION_KEY: 7kS8GqkH1xBzuxwWm0bTtBvVh3gJ2pQ1l0kQyE4H0rM=
+          DATA_HASH_KEY: ci

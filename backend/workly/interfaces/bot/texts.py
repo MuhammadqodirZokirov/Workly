@@ -18,6 +18,14 @@ _LATN = {
     "throttled": "Juda ko'p so'rov! Biroz kuting.",
     "cmd_start": "Botni ishga tushirish",
     "cmd_help": "Yordam",
+    "verification_approved": "✅ Profilingiz tasdiqlandi! Endi ish takliflarini olasiz.",
+    "verification_rejected": "❌ Profilingiz tasdiqlanmadi.\nSabab: {0}\n\nIlovada ma'lumotni tuzatib, qayta yuboring.",
+    "reason_blurry": "rasm noaniq",
+    "reason_mismatch": "ma'lumotlar hujjatga mos emas",
+    "reason_underage": "yosh talabga javob bermaydi (18+)",
+    "reason_doc_expired": "hujjat muddati o'tgan",
+    "reason_duplicate": "bu hujjat bilan boshqa akkaunt mavjud",
+    "reason_other": "moderator izohini ilovada ko'ring",
 }
 
 _RU = {
@@ -33,6 +41,16 @@ _RU = {
     "throttled": "Слишком много запросов! Подождите немного.",
     "cmd_start": "Запустить бота",
     "cmd_help": "Помощь",
+    "verification_approved": "✅ Ваш профиль подтверждён! Теперь вы будете получать предложения работы.",
+    "verification_rejected": (
+        "❌ Профиль не подтверждён.\nПричина: {0}\n\nИсправьте данные в приложении и отправьте снова."
+    ),
+    "reason_blurry": "нечёткое фото",
+    "reason_mismatch": "данные не совпадают с документом",
+    "reason_underage": "возраст не соответствует (18+)",
+    "reason_doc_expired": "срок действия документа истёк",
+    "reason_duplicate": "с этим документом уже есть другой аккаунт",
+    "reason_other": "см. комментарий модератора в приложении",
 }
 
 # Brend nomi va HTML teglar transliteratsiya qilinmaydi

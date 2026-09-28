@@ -62,7 +62,7 @@ ruff check . && ruff format --check .
 
 | Blok (TZ 22) | Holat |
 |---|---|
-| 1. Backend yadrosi: auth, profillar, katalog, hududlar | **Qisman**: auth (Telegram initData, SMS OTP, JWT + refresh rotatsiya), `/me`, rollar, rozilik, katalog va hududlar, bot orqali telefon tasdig'i tayyor. Ishchi/employer profillari va verifikatsiya — keyingi qadam |
+| 1. Backend yadrosi: auth, profillar, katalog, hududlar | **Deyarli tayyor**: auth, `/me`, katalog; ishchi profili, jadval, hujjat/selfie yuklash (shifrlangan), verifikatsiya va moderator navbati, audit jurnali. Qolgan: employer profili, ommaviy rezyume |
 | 2. Buyurtma, matching, lenta, bot | — |
 | 3. Check-in, yakunlash, baho | — |
 | 4. Web frontend, 3 til | — |
@@ -82,5 +82,29 @@ ruff check . && ruff format --check .
 | POST | `/api/v1/me/roles` | `worker` / `employer` |
 | POST | `/api/v1/me/consents` | Hujjat versiyasi, IP, qurilma |
 | GET | `/api/v1/catalog/categories`, `/regions`, `/districts` | Nomlar 3 tilda |
+| GET, PUT | `/api/v1/worker/profile` | Ishchi profili: F.I.Sh, sana (18+), jins, tumanlar, uy nuqtasi, kategoriya + tajriba, favqulodda kontakt. Qisman yangilash |
+| PUT | `/api/v1/worker/availability` | Haftalik jadval (kuniga ≤ 3 oraliq, kesishmasin) |
+| POST | `/api/v1/worker/files` | multipart `kind` + `file`: ID karta, pasport, selfie, guvohnoma. JPEG/PNG/WEBP (guvohnomaga PDF), ≤ 5 MB |
+| POST | `/api/v1/worker/verification` | Tekshiruvga yuborish: hujjat turi va raqami. To'liqlikni tekshiradi |
+| GET | `/api/v1/admin/verifications` | Moderator navbati (eng eskisi birinchi), takroriy hujjat belgisi |
+| GET | `/api/v1/admin/verifications/{user_id}` | Hujjat raqami va 5 daqiqalik imzoli fayl havolalari; audit jurnaliga yoziladi |
+| POST | `/api/v1/admin/verifications/{user_id}/approve`, `/reject` | Belgilar (`qualified`, `background_checked`) yoki rad sababi shabloni; ishchiga bot/SMS xabar |
 
 Xato formati: `{"code": "...", "message": "...", "details": ...}`.
+
+## Verifikatsiya
+
+`not_submitted → pending → verified | rejected`, `rejected → pending` (qayta yuborish), `verified → expired`. Har o'tish `state_transitions`ga, moderator harakatlari va hujjatni ko'rish `audit_logs`ga yoziladi.
+
+- Hujjat raqami shifrlangan (Fernet) + takrorni topish uchun kalitli hash; bir xil hujjat bilan ikkinchi akkaunt moderatorga belgilanadi
+- Fayllar diskda shifrlangan (Faza 1-lite; o'sishda MinIO), faqat imzoli havola orqali ochiladi
+- Tekshiruvda yoki tasdiqlangandan keyin F.I.Sh, sana, jins va hujjat fayllari o'zgartirilmaydi
+
+## Rollar
+
+Birinchi super admin yoki moderator (foydalanuvchi avval ilovaga kirgan bo'lishi kerak):
+
+```bash
+python -m workly.cli grant-role --phone +998901234567 --role super_admin
+python -m workly.cli revoke-role --phone +998901234567 --role moderator
+```

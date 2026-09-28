@@ -7,12 +7,15 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from workly.application.auth import AuthService, ClientInfo
+from workly.application.notifications import Notifier
 from workly.domain.errors import Forbidden, RateLimited, Unauthorized
 from workly.domain.users import Role, UserStatus
 from workly.infrastructure.config import Settings
+from workly.infrastructure.crypto import DataCipher
 from workly.infrastructure.db.models import User
 from workly.infrastructure.db.session import session_scope
 from workly.infrastructure.security import decode_access_token
+from workly.infrastructure.storage import FileStorage
 
 
 def get_settings(request: Request) -> Settings:
@@ -91,3 +94,25 @@ def require_roles(*roles: Role):
         return user
 
     return checker
+
+
+def get_cipher(request: Request) -> DataCipher:
+    return request.app.state.cipher
+
+
+def get_storage(request: Request) -> FileStorage:
+    return request.app.state.storage
+
+
+def get_notifier(request: Request) -> Notifier:
+    return request.app.state.notifier
+
+
+CipherDep = Annotated[DataCipher, Depends(get_cipher)]
+StorageDep = Annotated[FileStorage, Depends(get_storage)]
+NotifierDep = Annotated[Notifier, Depends(get_notifier)]
+Moderator = Annotated[User, Depends(require_roles(Role.MODERATOR, Role.ADMIN))]
+
+
+def client_ip(request: Request) -> str | None:
+    return request.client.host if request.client else None

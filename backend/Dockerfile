@@ -10,7 +10,7 @@ RUN pip install .
 COPY alembic.ini ./
 COPY alembic ./alembic
 
-RUN useradd --create-home app
+RUN useradd --create-home app && mkdir -p /data/media && chown app /data/media
 USER app
 
 EXPOSE 8000

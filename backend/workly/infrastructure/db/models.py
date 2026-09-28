@@ -1,6 +1,20 @@
-from datetime import datetime
+from datetime import date, datetime, time
 
-from sqlalchemy import BigInteger, Boolean, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    Date,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    SmallInteger,
+    String,
+    Text,
+    Time,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, BigIntPK, TimestampMixin, utcnow
@@ -124,3 +138,130 @@ class Specialization(NamedMixin, Base):
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"), index=True)
     code: Mapped[str] = mapped_column(String(32))
     category: Mapped[Category] = relationship(back_populates="specializations")
+
+
+# ---------------- Ishchi (TZ 4-bo'lim) ----------------
+class WorkerProfile(TimestampMixin, Base):
+    __tablename__ = "worker_profiles"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    birth_date: Mapped[date | None] = mapped_column(Date)
+    gender: Mapped[str | None] = mapped_column(String(8))
+    # TODO(2-blok, matching): PostGIS geography(Point) ga o'tkazish
+    home_lat: Mapped[float | None] = mapped_column(Float)
+    home_lon: Mapped[float | None] = mapped_column(Float)
+    emergency_name: Mapped[str | None] = mapped_column(String(120))
+    emergency_phone: Mapped[str | None] = mapped_column(String(16))
+
+    verification_status: Mapped[str] = mapped_column(String(16), default="not_submitted", index=True)
+    doc_type: Mapped[str | None] = mapped_column(String(16))
+    doc_number_enc: Mapped[str | None] = mapped_column(Text)
+    doc_number_hash: Mapped[str | None] = mapped_column(String(64), index=True)
+    submitted_at: Mapped[datetime | None]
+    verified_at: Mapped[datetime | None]
+    verified_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
+    rejection_reason: Mapped[str | None] = mapped_column(String(32))
+    rejection_comment: Mapped[str | None] = mapped_column(String(500))
+    duplicate_of_user_id: Mapped[int | None] = mapped_column(BigInteger)
+    badges: Mapped[list[str]] = mapped_column(JSON, default=list)
+
+    user: Mapped[User] = relationship(foreign_keys=[user_id], lazy="joined")
+    skills: Mapped[list["WorkerSkill"]] = relationship(lazy="selectin", cascade="all, delete-orphan")
+    specializations: Mapped[list["WorkerSpecialization"]] = relationship(lazy="selectin", cascade="all, delete-orphan")
+    districts: Mapped[list["WorkerDistrict"]] = relationship(lazy="selectin", cascade="all, delete-orphan")
+    availability: Mapped[list["WorkerAvailability"]] = relationship(lazy="selectin", cascade="all, delete-orphan")
+
+    def __init__(self, **kwargs):
+        for name in ("skills", "specializations", "districts", "availability", "badges"):
+            kwargs.setdefault(name, [])
+        super().__init__(**kwargs)
+
+
+class WorkerSkill(Base):
+    """Kategoriya bo'yicha tajriba."""
+
+    __tablename__ = "worker_skills"
+    __table_args__ = (UniqueConstraint("user_id", "category_id"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("worker_profiles.user_id", ondelete="CASCADE"), index=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
+    experience: Mapped[str] = mapped_column(String(8))
+
+
+class WorkerSpecialization(Base):
+    __tablename__ = "worker_specializations"
+    __table_args__ = (UniqueConstraint("user_id", "specialization_id"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("worker_profiles.user_id", ondelete="CASCADE"), index=True)
+    category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))  # matching uchun denormalizatsiya
+    specialization_id: Mapped[int] = mapped_column(ForeignKey("specializations.id"), index=True)
+
+
+class WorkerDistrict(Base):
+    __tablename__ = "worker_districts"
+    __table_args__ = (UniqueConstraint("user_id", "district_id"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("worker_profiles.user_id", ondelete="CASCADE"), index=True)
+    district_id: Mapped[int] = mapped_column(ForeignKey("districts.id"), index=True)
+
+
+class WorkerAvailability(Base):
+    """Haftalik jadval: weekday 0 = dushanba."""
+
+    __tablename__ = "worker_availability"
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("worker_profiles.user_id", ondelete="CASCADE"), index=True)
+    weekday: Mapped[int] = mapped_column(SmallInteger)
+    start: Mapped[time] = mapped_column(Time)
+    end: Mapped[time] = mapped_column(Time)
+
+
+class WorkerFile(Base):
+    """Hujjat, selfie va guvohnoma fayllari (shifrlangan). Faqat moderator imzoli havola bilan ko'radi."""
+
+    __tablename__ = "worker_documents"
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(24))
+    storage_key: Mapped[str] = mapped_column(String(200), unique=True)
+    content_type: Mapped[str] = mapped_column(String(40))
+    size: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    deleted_at: Mapped[datetime | None]
+
+
+# ---------------- Tizim (TZ 17-bo'lim) ----------------
+class StateTransition(Base):
+    __tablename__ = "state_transitions"
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    object_type: Mapped[str] = mapped_column(String(32))
+    object_id: Mapped[int] = mapped_column(BigInteger)
+    from_state: Mapped[str | None] = mapped_column(String(32))
+    to_state: Mapped[str] = mapped_column(String(32))
+    actor_id: Mapped[int | None] = mapped_column(BigInteger)
+    reason: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+    __table_args__ = (Index("ix_state_transitions_object", "object_type", "object_id"),)
+
+
+class AuditLog(Base):
+    """O'zgarmas jurnal: admin harakatlari va shaxsiy ma'lumotni ko'rish."""
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    actor_id: Mapped[int | None] = mapped_column(BigInteger, index=True)
+    action: Mapped[str] = mapped_column(String(64))
+    object_type: Mapped[str] = mapped_column(String(32))
+    object_id: Mapped[int | None] = mapped_column(BigInteger)
+    before: Mapped[dict | None] = mapped_column(JSON)
+    after: Mapped[dict | None] = mapped_column(JSON)
+    ip: Mapped[str | None] = mapped_column(String(45))
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)

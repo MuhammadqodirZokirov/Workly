@@ -11,7 +11,8 @@ from workly.infrastructure.db import models  # noqa: F401
 from workly.infrastructure.db.base import Base
 from workly.infrastructure.db.session import make_sessionmaker
 from workly.infrastructure.seed import seed
-from workly.interfaces.api.main import create_app
+from workly.infrastructure.storage import EncryptedLocalStorage
+from workly.interfaces.api.main import build_cipher, create_app
 
 BOT_TOKEN = "123456:TEST-token"
 
@@ -30,8 +31,19 @@ class FakeSms:
         return self.sent[-1][1].rsplit(" ", 1)[-1]
 
 
+FERNET_KEY = "7kS8GqkH1xBzuxwWm0bTtBvVh3gJ2pQ1l0kQyE4H0rM="
+
+
+class FakeNotifier:
+    def __init__(self):
+        self.calls: list[tuple] = []
+
+    async def verification_result(self, user_id: int, approved: bool, reason: str | None) -> None:
+        self.calls.append((user_id, approved, reason))
+
+
 @pytest.fixture
-def settings() -> Settings:
+def settings(tmp_path) -> Settings:
     return Settings(
         env="test",
         jwt_secret="test-secret-test-secret-test-secret",
@@ -39,6 +51,9 @@ def settings() -> Settings:
         bot_mode="off",
         database_url=DB_URL,
         auth_rate_limit_per_min=1000,
+        data_encryption_key=FERNET_KEY,
+        data_hash_key="test-hash-key",
+        media_dir=str(tmp_path / "media"),
     )
 
 
@@ -81,9 +96,17 @@ def sms() -> FakeSms:
 
 
 @pytest.fixture
-def app(settings, maker, redis, sms):
+def notifier() -> FakeNotifier:
+    return FakeNotifier()
+
+
+@pytest.fixture
+def app(settings, maker, redis, sms, notifier):
     app = create_app(settings, use_lifespan=False)
     app.state.maker, app.state.redis, app.state.sms = maker, redis, sms
+    app.state.cipher = build_cipher(settings)
+    app.state.storage = EncryptedLocalStorage(settings.media_dir, app.state.cipher)
+    app.state.notifier = notifier
     return app
 
 
