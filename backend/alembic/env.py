@@ -14,14 +14,25 @@ def _url() -> str:
     return context.config.get_main_option("sqlalchemy.url") or get_settings().database_url
 
 
+def include_object(obj, name, type_, reflected, compare_to) -> bool:
+    # Bazadagi begona jadvallarni (PostGIS: spatial_ref_sys, tiger geocoder va h.k.) e'tiborsiz qoldiramiz
+    if type_ == "table" and reflected and compare_to is None:
+        return False
+    if type_ == "index" and reflected and compare_to is None and obj.table.name not in target_metadata.tables:
+        return False
+    return True
+
+
 def run_migrations_offline() -> None:
-    context.configure(url=_url(), target_metadata=target_metadata, literal_binds=True)
+    context.configure(url=_url(), target_metadata=target_metadata, literal_binds=True, include_object=include_object)
     with context.begin_transaction():
         context.run_migrations()
 
 
 def _do_run(connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+    context.configure(
+        connection=connection, target_metadata=target_metadata, compare_type=True, include_object=include_object
+    )
     with context.begin_transaction():
         context.run_migrations()
 
