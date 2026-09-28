@@ -1,7 +1,8 @@
 import { Phone, Repeat, UserRound, Users } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router";
 
+import { CancelFlow, PartialDecision, RelationButtons } from "../../components/orderActions";
 import { useErrorText } from "../../components/shared";
 import { EmployerSlotActions, WorkdayTag } from "../../components/workday";
 import { Button, Card, Empty, ErrorBox, Page, Section, Spinner, Tag, TopBar } from "../../components/ui";
@@ -12,6 +13,8 @@ import { dateTime, money, phonePretty } from "../../lib/format";
 import { pickName, useI18n } from "../../lib/i18n";
 import type { Order } from "../../lib/types";
 import { useMyOrders } from "./EmployerHome";
+
+const ACTIVE = ["pending_approval", "matching", "partially_assigned", "assigned", "in_progress"];
 
 const STATUS_TONE: Record<string, "accent" | "brand" | "success" | "muted" | "danger"> = {
   pending_approval: "accent",
@@ -80,22 +83,13 @@ export default function Orders() {
 export function OrderDetail() {
   const { id } = useParams();
   const { t, lang } = useI18n();
-  const qc = useQueryClient();
   const navigate = useNavigate();
   const catalog = useCatalog();
   const errorText = useErrorText();
   const order = useQuery({
     queryKey: ["orders", id],
     queryFn: () => api<Order>(`/orders/${id}`),
-    refetchInterval: (q) =>
-      ["matching", "partially_assigned", "assigned", "in_progress"].includes(q.state.data?.status ?? "") ? 15_000 : false,
-  });
-  const cancel = useMutation({
-    mutationFn: () => api<Order>(`/orders/${id}/cancel`, { body: {} }),
-    onSuccess: (o) => {
-      qc.setQueryData(["orders", id], o);
-      qc.invalidateQueries({ queryKey: ["orders"] });
-    },
+    refetchInterval: (q) => (ACTIVE.includes(q.state.data?.status ?? "") ? 15_000 : false),
   });
 
   if (order.isLoading) return <Spinner />;
@@ -103,7 +97,7 @@ export function OrderDetail() {
   if (!o) return <ErrorBox message={errorText(order.error)} />;
   const spec = catalog.specialization(o.specialization_id);
   const district = catalog.district(o.district_id);
-  const cancellable = ["pending_approval", "matching"].includes(o.status) && o.assignments.every((a) => !a.worker_id);
+  const cancellable = ACTIVE.includes(o.status);
 
   return (
     <>
@@ -125,9 +119,12 @@ export function OrderDetail() {
           </div>
         </Card>
 
+        <PartialDecision order={o} />
+
         <Section title={t("order.assigned")}>
           <div className="space-y-2">
-            {o.assignments.map((a) => (
+            {/* yopilgan bo'sh o'rinlar ko'rsatilmaydi */}
+            {o.assignments.filter((a) => a.worker_id || a.status === "open").map((a) => (
               <Card key={a.id} className="space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <span className="flex min-w-0 items-center gap-3">
@@ -148,20 +145,18 @@ export function OrderDetail() {
                   )}
                 </div>
                 {a.worker_id && <EmployerSlotActions slot={a} startsAt={o.starts_at} />}
+                {a.worker_id && <RelationButtons slot={a} orderId={o.id} />}
               </Card>
             ))}
           </div>
         </Section>
 
         <div className="mt-6 space-y-2">
-          <ErrorBox message={errorText(cancel.error)} />
           <Button variant="secondary" onClick={() => navigate(`/orders/new?repeat=${o.id}`)}>
             <Repeat size={18} aria-hidden /> {t("order.repeat")}
           </Button>
           {cancellable && (
-            <Button variant="danger" loading={cancel.isPending} onClick={() => cancel.mutate()}>
-              {t("order.cancel")}
-            </Button>
+            <CancelFlow previewPath={`/orders/${o.id}/cancel-preview`} cancelPath={`/orders/${o.id}/cancel`} label={t("order.cancel")} />
           )}
         </div>
       </Page>

@@ -7,6 +7,7 @@ import { money } from "../lib/format";
 import { useI18n, type MsgKey } from "../lib/i18n";
 import { haptic } from "../lib/telegram";
 import type { AssignmentSlot, AssignmentState, Reviews, WorkerAssignment } from "../lib/types";
+import { CancelFlow } from "./orderActions";
 import { useErrorText } from "./shared";
 import { Button, Chip, cx, ErrorBox, Input, Tag, Textarea } from "./ui";
 
@@ -28,6 +29,7 @@ const TONE: Record<string, "accent" | "brand" | "success" | "muted" | "danger"> 
   no_show: "danger",
   replaced: "muted",
   open: "brand",
+  cancelled: "muted",
 };
 
 export function WorkdayTag({ status }: { status: string }) {
@@ -165,7 +167,19 @@ export function WorkerDayActions({ a }: { a: WorkerAssignment }) {
 
   switch (a.status) {
     case "assigned":
-      return <CheckIn a={a} />;
+      return (
+        <div className="space-y-3">
+          <CheckIn a={a} />
+          {Date.now() < new Date(a.starts_at).getTime() && (
+            <CancelFlow
+              previewPath={`/assignments/${a.assignment_id}/cancel-preview`}
+              cancelPath={`/assignments/${a.assignment_id}/cancel`}
+              label={t("cx.worker")}
+              hint={t("cx.workerHint")}
+            />
+          )}
+        </div>
+      );
     case "arrived":
     case "working":
       return (

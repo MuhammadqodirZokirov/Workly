@@ -181,6 +181,8 @@ class BotNotifier:
         "confirm_reminder": "e",
         "confirmed": "we",
         "problem": "a",
+        "order_cancelled": "w",
+        "cancel_warning": "w",
     }
 
     async def workday_event(self, assignment_id: int, kind: str) -> None:
@@ -201,3 +203,13 @@ class BotNotifier:
         if "a" in who:
             for admin_id in self.settings.admins if self.settings else []:
                 await self._tg(admin_id, t(f"wd_{kind}_admin", "uz_latn", a.order.id, assignment_id))
+
+    # ---------- buyurtma hodisalari (employerga) ----------
+    async def order_event(self, order_id: int, kind: str) -> None:
+        async with self.maker() as db:
+            order = await db.get(Order, order_id)
+            if order is None:
+                return
+            employer = await db.get(User, order.employer_id)
+            filled = sum(1 for a in order.assignments if a.status == AssignmentStatus.ASSIGNED)
+        await self._tg(employer.telegram_id, t(f"order_{kind}_employer", employer.lang, order.id, filled))

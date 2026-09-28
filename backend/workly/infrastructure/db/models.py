@@ -362,6 +362,10 @@ class Order(TimestampMixin, Base):
     waves_sent: Mapped[int] = mapped_column(SmallInteger, default=0)
     last_wave_at: Mapped[datetime | None]
     matching_alerted_at: Mapped[datetime | None]
+    favorites_sent_at: Mapped[datetime | None]  # sevimlilar to'lqini (3 to'lqin limitiga kirmaydi)
+    # T−60 qisman to'lgan buyurtma: employer tanlovi — "start" yoki "wait" (TZ 6, OS-10)
+    partial_asked_at: Mapped[datetime | None]
+    partial_decision: Mapped[str | None] = mapped_column(String(8))
 
     assignments: Mapped[list["Assignment"]] = relationship(
         back_populates="order", lazy="selectin", cascade="all, delete-orphan", order_by="Assignment.slot_no"
@@ -468,4 +472,24 @@ class ReliabilityEvent(Base):
     delta: Mapped[int] = mapped_column(SmallInteger)
     reason: Mapped[str] = mapped_column(String(40))
     assignment_id: Mapped[int | None] = mapped_column(ForeignKey("assignments.id"))
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+
+class EmployerFavorite(Base):
+    """Sevimli ishchi: keyingi buyurtmada alohida birinchi to'lqin (TZ 5, 7)."""
+
+    __tablename__ = "employer_favorites"
+
+    employer_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    worker_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+
+class EmployerBlock(Base):
+    """Bloklangan ishchi shu employerga boshqa taklif qilinmaydi (TZ 5, 7)."""
+
+    __tablename__ = "employer_blocks"
+
+    employer_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    worker_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True, index=True)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)

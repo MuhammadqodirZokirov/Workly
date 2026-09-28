@@ -110,6 +110,10 @@ class WorkdayService:
         )
         model = WorkerProfile if role == "worker" else EmployerProfile
         profile = await self.db.get(model, user_id)
+        if profile is None and role == "employer":
+            # Employer profili ixtiyoriy to'ldiriladi — indeks uchun bo'sh profil yaratiladi
+            profile = EmployerProfile(user_id=user_id, reliability=100)
+            self.db.add(profile)
         if profile is None:
             return 100
         profile.reliability = clamp_reliability(profile.reliability + delta)

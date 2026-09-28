@@ -11,9 +11,8 @@ from redis.asyncio import Redis
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from workly.domain.errors import Conflict, Forbidden, InvalidState, NotFound, ValidationFailed
+from workly.domain.errors import Conflict, Forbidden, NotFound, ValidationFailed
 from workly.domain.orders import (
-    ACTIVE_STATUSES,
     FIRST_ORDER_MAX_WORKERS,
     NEW_EMPLOYER_APPROVAL_FROM,
     QUOTE_TTL_SECONDS,
@@ -300,28 +299,7 @@ class OrderService:
             top_only=o.top_only,
         )
 
-    # ---------- bekor qilish ----------
-    async def cancel(self, user: User, order_id: int, reason: str | None) -> Order:
-        order = await self.get(user, order_id)
-        if order.employer_id != user.id:
-            raise Forbidden()
-        if order.status not in ACTIVE_STATUSES:
-            raise InvalidState("Buyurtma faol emas", code="INVALID_STATE")
-        if any(a.status != AssignmentStatus.OPEN for a in order.assignments):
-            # TODO(matching): tayinlangan ishchi bo'lsa — 11-bo'limdagi to'lov jadvali bilan
-            raise InvalidState(
-                "Ishchi tayinlangan buyurtmani bekor qilish keyingi bosqichda qo'shiladi", code="CANCEL_WITH_ASSIGNED"
-            )
-        ensure_order_transition(order.status, OrderStatus.CANCELLED)
-        old = order.status
-        order.status = OrderStatus.CANCELLED
-        order.cancelled_at = datetime.now(UTC)
-        order.cancel_reason = (reason or "").strip() or None
-        for a in order.assignments:
-            a.status = AssignmentStatus.CANCELLED
-        record_transition(self.db, "order", order.id, old, OrderStatus.CANCELLED, user.id, reason=order.cancel_reason)
-        await self.db.flush()
-        return order
+    # Bekor qilish — application/cancellation.py (TZ 11 jadvali)
 
     async def approve(self, admin: User, order_id: int) -> Order:
         order = await self.db.get(Order, order_id)

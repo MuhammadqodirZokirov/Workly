@@ -98,6 +98,17 @@ export interface AssignmentSlot {
   finished_at: string | null;
   confirmed_at: string | null;
   problem: string | null;
+  favorite: boolean;
+  blocked: boolean;
+}
+
+/** Bekor qilish oqibati (TZ 11); pilotda charged=false — summa olinmaydi */
+export interface CancelTerms {
+  tier: "free" | "h6_24" | "lt6" | "after_arrival";
+  percent: number;
+  amount: number;
+  reliability: number;
+  charged: boolean;
 }
 
 export interface Order {
@@ -117,6 +128,8 @@ export interface Order {
   price: Price;
   assignments: AssignmentSlot[];
   created_at: string;
+  partial_asked_at: string | null;
+  partial_decision: "start" | "wait" | null;
 }
 
 export interface JobCard {

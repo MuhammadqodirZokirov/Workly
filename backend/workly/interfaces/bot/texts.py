@@ -69,6 +69,10 @@ _LATN = {
     "wd_confirmed_worker": "✅ Buyurtma #{0} tasdiqlandi. Ish beruvchini baholang (48 soat).",
     "wd_confirmed_employer": "Buyurtma #{0}: ishchini baholang (48 soat).",
     "wd_problem_admin": "⚠️ Buyurtma #{0} (tayinlov {1}): muammo bildirildi — admin panelda ko'ring.",
+    "wd_order_cancelled_worker": "Buyurtma #{0} ish beruvchi tomonidan bekor qilindi. Boshqa takliflar kelishini kuting.",
+    "wd_cancel_warning_worker": "⚠️ Bu oyda 3 va undan ko'p marta ishni bekor qildingiz. Takror bo'lsa, takliflar kamayadi.",
+    "order_partial_decision_employer": "Buyurtma #{0}: 1 soatdan keyin boshlanadi, hozircha {1} ta ishchi topildi. Ilovada tanlang: topilganlar bilan boshlash yoki kutish.",
+    "order_worker_cancelled_employer": "Buyurtma #{0}: ishchi bekor qildi. O'rniga yangi ishchi izlanmoqda.",
 }
 
 _RU = {
@@ -139,6 +143,10 @@ _RU = {
     "wd_confirmed_worker": "✅ Заказ #{0} подтверждён. Оцените работодателя (48 часов).",
     "wd_confirmed_employer": "Заказ #{0}: оцените работника (48 часов).",
     "wd_problem_admin": "⚠️ Заказ #{0} (назначение {1}): сообщено о проблеме — смотрите в админ-панели.",
+    "wd_order_cancelled_worker": "Заказ #{0} отменён работодателем. Ждите другие предложения.",
+    "wd_cancel_warning_worker": "⚠️ В этом месяце вы отменили работу 3 и более раз. При повторении предложений станет меньше.",
+    "order_partial_decision_employer": "Заказ #{0}: начало через 1 час, найдено работников: {1}. Выберите в приложении: начать с найденными или ждать.",
+    "order_worker_cancelled_employer": "Заказ #{0}: работник отменил. Ищем замену.",
 }
 
 # Brend nomi va HTML teglar transliteratsiya qilinmaydi

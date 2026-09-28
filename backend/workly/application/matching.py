@@ -9,6 +9,7 @@ from redis.asyncio import Redis
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from workly.domain.cancellation import needs_partial_decision
 from workly.domain.errors import Forbidden, InvalidState, NotFound
 from workly.domain.matching import (
     AVAILABLE_NOW_TTL,
@@ -43,6 +44,7 @@ from workly.domain.users import Role, UserStatus
 from workly.domain.worker import VerificationStatus
 from workly.infrastructure.db.models import (
     Assignment,
+    EmployerBlock,
     Offer,
     Order,
     User,
@@ -51,8 +53,10 @@ from workly.infrastructure.db.models import (
 )
 
 from .audit import record_transition
+from .cancellation import shrink_to_filled
 from .notifications import Notifier
 from .ratings import rating_of
+from .relations import favorite_ids
 
 log = logging.getLogger(__name__)
 TASHKENT = ZoneInfo("Asia/Tashkent")
@@ -142,6 +146,10 @@ class MatchingService:
                 # Kelmaslik yoki past ishonchlilik uchun to'xtatilganlar taklif olmaydi (TZ 11)
                 or_(WorkerProfile.suspended_until.is_(None), WorkerProfile.suspended_until <= self.now),
                 WorkerProfile.user_id != order.employer_id,
+                # Employer bloklagan ishchi unga taklif olmaydi (TZ 5)
+                WorkerProfile.user_id.not_in(
+                    select(EmployerBlock.worker_id).where(EmployerBlock.employer_id == order.employer_id)
+                ),
             )
         )
         if only_worker is not None:
@@ -178,7 +186,7 @@ class MatchingService:
                     job_hours(order.duration),
                 ):
                     continue
-            # Reyting < 3.5 (≥ 5 baho) — taklif olmaydi (TZ 7, 13). TODO: employer bloklagan ishchilar
+            # Reyting < 3.5 (≥ 5 baho) — taklif olmaydi (TZ 7, 13)
             rating, reviews_count = await rating_of(self.db, p.user_id, "worker")
             if reviews_count >= MIN_REVIEWS_FOR_RATING_FILTER and rating is not None and rating < MIN_RATING:
                 continue
@@ -219,9 +227,30 @@ class MatchingService:
         assigned = {a.worker_id for a in order.assignments if a.worker_id}
         ranked = [c for c in await self.candidates(order) if c.profile.user_id not in offered | assigned]
         by_id = {c.profile.user_id: c for c in ranked}
+        expires = self.now + offer_ttl(utc(order.starts_at), self.now)
+        if not replacement and order.waves_sent == 0 and order.favorites_sent_at is None:
+            # Sevimlilar — alohida birinchi to'lqin; 3 to'lqin limitiga kirmaydi, lentani ochmaydi (TZ 7)
+            order.favorites_sent_at = self.now
+            favs = await favorite_ids(self.db, order.employer_id)
+            chosen = [c.signals for c in ranked if c.profile.user_id in favs][: wave_size(free)]
+            if chosen:
+                offers = self._make_offers(order, chosen, by_id, 1, expires)
+                order.last_wave_at = self.now
+                await self.db.flush()
+                self.outbox.extend(("offer_new", (o.id,)) for o in offers)
+                log.info("order=%s favorites wave offers=%s", order.id, len(offers))
+                return offers
         wave_no = order.waves_sent + 1
         chosen = compose_wave([c.signals for c in ranked], wave_size(free))
-        expires = self.now + offer_ttl(utc(order.starts_at), self.now)
+        offers = self._make_offers(order, chosen, by_id, wave_no, expires)
+        order.waves_sent = wave_no if offers else MAX_WAVES  # nomzod yo'q — keyingi to'lqin ham bo'sh
+        order.last_wave_at = self.now
+        await self.db.flush()
+        self.outbox.extend(("offer_new", (o.id,)) for o in offers)  # id flush'dan keyin
+        log.info("order=%s wave=%s offers=%s", order.id, wave_no, len(offers))
+        return offers
+
+    def _make_offers(self, order: Order, chosen: list, by_id: dict, wave_no: int, expires: datetime) -> list[Offer]:
         offers = [
             Offer(
                 order_id=order.id,
@@ -236,11 +265,6 @@ class MatchingService:
             for s in chosen
         ]
         self.db.add_all(offers)
-        order.waves_sent = wave_no if offers else MAX_WAVES  # nomzod yo'q — keyingi to'lqin ham bo'sh
-        order.last_wave_at = self.now
-        await self.db.flush()
-        self.outbox.extend(("offer_new", (o.id,)) for o in offers)
-        log.info("order=%s wave=%s offers=%s", order.id, wave_no, len(offers))
         return offers
 
     # ================= qabul / rad =================
@@ -325,6 +349,24 @@ class MatchingService:
                 ensure_order_transition(order.status, new)
             record_transition(self.db, "order", order.id, order.status, new, actor_id)
             order.status = new
+
+    async def close_open_slots(self, order: Order, actor_id: int | None, reason: str) -> int:
+        """Bo'sh o'rinlarni yopish va faol takliflarni qaytarib olish."""
+        closed = 0
+        for a in order.assignments:
+            if a.status == AssignmentStatus.OPEN:
+                record_transition(self.db, "assignment", a.id, a.status, AssignmentStatus.CANCELLED, actor_id, reason)
+                a.status = AssignmentStatus.CANCELLED
+                closed += 1
+        shrink_to_filled(order, closed)
+        offers = await self.db.scalars(
+            select(Offer).where(Offer.order_id == order.id, Offer.status == OfferStatus.SENT)
+        )
+        for o in offers:
+            o.status = OfferStatus.WITHDRAWN
+        await self._update_order_status(order, actor_id)
+        await self.db.flush()
+        return closed
 
     async def decline(self, user: User, offer_id: int) -> Offer:
         offer = await self.db.get(Offer, offer_id)
@@ -439,7 +481,7 @@ class MatchingService:
     async def tick(self) -> dict:
         """Har 30 soniyada: muddati o'tgan takliflar, keyingi to'lqinlar, o'tib ketgan buyurtmalar.
         Holat bazada saqlanadi — server qayta ishga tushsa ham muddatlar yo'qolmaydi (TZ 6-bo'lim)."""
-        stats = {"expired_offers": 0, "waves": 0, "offers": 0, "alerts": 0, "expired_orders": 0}
+        stats = {"expired_offers": 0, "waves": 0, "offers": 0, "alerts": 0, "expired_orders": 0, "partial": 0}
 
         expired = list(
             await self.db.scalars(select(Offer).where(Offer.status == OfferStatus.SENT, Offer.expires_at <= self.now))
@@ -470,6 +512,12 @@ class MatchingService:
         )
         for order in orders:
             if order.status not in MATCHING_STATUSES and not self.is_replacement(order):
+                # Ish erta boshlangan (check-in T−30 dan), lekin bo'sh o'rin qolgan — T da yopiladi
+                if utc(order.starts_at) <= self.now and any(
+                    a.status == AssignmentStatus.OPEN for a in order.assignments
+                ):
+                    await self.close_open_slots(order, None, reason="start_time")
+                    stats["partial"] += 1
                 continue
             if utc(order.starts_at) <= self.now and not self.is_replacement(order):
                 if order.status == OrderStatus.MATCHING:
@@ -481,7 +529,20 @@ class MatchingService:
                     for a in order.assignments:
                         a.status = AssignmentStatus.CANCELLED
                     stats["expired_orders"] += 1
+                elif order.status == OrderStatus.PARTIALLY_ASSIGNED:
+                    # Boshlanish vaqti keldi — to'lmagan o'rinlar yopiladi, topilganlar bilan ishlanadi
+                    await self.close_open_slots(order, None, reason="start_time")
+                    stats["partial"] += 1
                 continue
+            if (
+                order.status == OrderStatus.PARTIALLY_ASSIGNED
+                and order.partial_asked_at is None
+                and needs_partial_decision(utc(order.starts_at), self.now)
+            ):
+                # T−60: employer tanlaydi — topilganlar bilan boshlash yoki kutish (TZ 6, OS-10)
+                order.partial_asked_at = self.now
+                self.outbox.append(("order_event", (order.id, "partial_decision")))
+                stats["partial"] += 1
             if not any(a.status == AssignmentStatus.OPEN for a in order.assignments):
                 continue
             active = await self.db.scalar(

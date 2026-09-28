@@ -67,6 +67,8 @@ class AssignmentOut(BaseModel):
     finished_at: datetime | None = None
     confirmed_at: datetime | None = None
     problem: str | None = None
+    favorite: bool = False
+    blocked: bool = False
 
 
 class OrderOut(BaseModel):
@@ -93,6 +95,8 @@ class OrderOut(BaseModel):
     price: PriceOut
     assignments: list[AssignmentOut]
     created_at: datetime
+    partial_asked_at: datetime | None = None  # T−60 tanlovi ochilgan
+    partial_decision: str | None = None
 
     @classmethod
     def of(cls, o) -> "OrderOut":
@@ -133,11 +137,31 @@ class OrderOut(BaseModel):
                 for a in o.assignments
             ],
             created_at=o.created_at,
+            partial_asked_at=o.partial_asked_at,
+            partial_decision=o.partial_decision,
         )
 
 
 class CancelIn(BaseModel):
     reason: str | None = Field(default=None, max_length=300)
+
+
+class CancelTermsOut(BaseModel):
+    """Bekor qilish oqibati — tasdiqlashdan oldin ko'rsatiladi (TZ 5, 11)."""
+
+    tier: str
+    percent: int
+    amount: int
+    reliability: int
+    charged: bool  # pilotda False — summa olinmaydi
+
+    @classmethod
+    def of(cls, t) -> "CancelTermsOut":
+        return cls(tier=t.tier, percent=t.percent, amount=t.amount, reliability=t.reliability, charged=t.charged)
+
+
+class PartialDecisionIn(BaseModel):
+    start: bool  # True — topilganlar bilan boshlash, False — kutish
 
 
 class RepeatIn(BaseModel):

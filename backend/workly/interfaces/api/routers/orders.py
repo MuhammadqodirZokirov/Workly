@@ -1,13 +1,25 @@
 from fastapi import APIRouter, BackgroundTasks, Header, Query, Request
 
+from workly.application.cancellation import CancellationService
 from workly.application.orders import OrderParams, OrderService, QuoteResult
+from workly.application.relations import blocked_ids, favorite_ids
 from workly.domain.names import public_name
 from workly.domain.orders import OrderStatus
 from workly.infrastructure.db.models import User, WorkerProfile
-from workly.workers.scheduler import start_matching
+from workly.workers.scheduler import deliver_workday_outbox, start_matching
 
-from ..deps import CurrentUser, DbDep, RedisDep, SettingsDep
-from ..schemas_orders import CancelIn, OrderCreateIn, OrderIn, OrderOut, PriceOut, QuoteOut, RepeatIn
+from ..deps import CurrentUser, DbDep, NotifierDep, RedisDep, SettingsDep
+from ..schemas_orders import (
+    CancelIn,
+    CancelTermsOut,
+    OrderCreateIn,
+    OrderIn,
+    OrderOut,
+    PartialDecisionIn,
+    PriceOut,
+    QuoteOut,
+    RepeatIn,
+)
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 
@@ -17,6 +29,7 @@ CANCELLATION_POLICY = [
     "6–24 soat oldin — buyurtmaning 20% i ishchilarga",
     "6 soatdan kam qolganda — 50%",
     "Ishchi yetib kelgandan keyin — birinchi kunning 100%",
+    "Pilot davrida summa olinmaydi — faqat Ishonchlilik indeksi kamayadi",
 ]
 
 
@@ -109,9 +122,33 @@ async def get_order(order_id: int, user: CurrentUser, db: DbDep, redis: RedisDep
     return await _order_out(db, await OrderService(db, redis, settings).get(user, order_id))
 
 
+@router.get("/{order_id}/cancel-preview", response_model=CancelTermsOut)
+async def cancel_preview(order_id: int, user: CurrentUser, db: DbDep):
+    return CancelTermsOut.of(await CancellationService(db).employer_preview(user, order_id))
+
+
 @router.post("/{order_id}/cancel", response_model=OrderOut)
-async def cancel(order_id: int, body: CancelIn, user: CurrentUser, db: DbDep, redis: RedisDep, settings: SettingsDep):
-    return await _order_out(db, await OrderService(db, redis, settings).cancel(user, order_id, body.reason))
+async def cancel(
+    order_id: int,
+    body: CancelIn,
+    user: CurrentUser,
+    db: DbDep,
+    redis: RedisDep,
+    notifier: NotifierDep,
+    request: Request,
+    background: BackgroundTasks,
+):
+    """Istalgan faol holatda; tayinlangan ishchilar bo'lsa — TZ 11 jadvali (pilotda faqat Ishonchlilik)."""
+    svc = CancellationService(db)
+    order, _ = await svc.cancel_order(user, order_id, body.reason)
+    background.add_task(deliver_workday_outbox, svc, request.app.state.maker, redis, notifier, None)
+    return await _order_out(db, order)
+
+
+@router.post("/{order_id}/partial", response_model=OrderOut)
+async def partial_decision(order_id: int, body: PartialDecisionIn, user: CurrentUser, db: DbDep):
+    """T−60 qisman to'lgan buyurtma: topilganlar bilan boshlash yoki kutish (TZ 6, OS-10)."""
+    return await _order_out(db, await CancellationService(db).partial_decision(user, order_id, body.start))
 
 
 @router.post("/{order_id}/repeat", response_model=QuoteOut)
@@ -125,10 +162,12 @@ async def repeat(order_id: int, body: RepeatIn, user: CurrentUser, db: DbDep, re
 async def _order_out(db, order) -> OrderOut:
     """Tayinlangan ishchi: ommaviy ism, reyting kartasi va telefon (tayinlovdan keyin ochiladi)."""
     out = OrderOut.of(order)
+    favs, blocks = await favorite_ids(db, order.employer_id), await blocked_ids(db, order.employer_id)
     for a in out.assignments:
         if a.worker_id:
             profile = await db.get(WorkerProfile, a.worker_id)
             user = await db.get(User, a.worker_id)
             a.worker_name = public_name(profile.first_name, profile.last_name) if profile else None
             a.worker_phone = user.phone if user else None
+            a.favorite, a.blocked = a.worker_id in favs, a.worker_id in blocks
     return out

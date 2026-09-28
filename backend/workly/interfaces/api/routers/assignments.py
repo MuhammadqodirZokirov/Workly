@@ -4,12 +4,14 @@ from fastapi import APIRouter, BackgroundTasks, File, Form, Request, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
+from workly.application.cancellation import CancellationService
 from workly.application.workday import WorkdayService
 from workly.domain.errors import ValidationFailed
 from workly.infrastructure.db.models import Assignment, Review
 from workly.workers.scheduler import deliver_workday_outbox
 
 from ..deps import CurrentUser, DbDep, NotifierDep, RedisDep, SettingsDep, StorageDep
+from ..schemas_orders import CancelTermsOut
 
 router = APIRouter(prefix="/assignments", tags=["workday"])
 
@@ -188,6 +190,33 @@ async def replace(
     """Employer: ishchi 30 daqiqadan ko'p kechiksa — almashtirish."""
     svc = WorkdayService(db)
     a = await svc.replace(user, assignment_id)
+    _after_commit(background, svc, request, redis, notifier)
+    return AssignmentStateOut.of(a)
+
+
+class WorkerCancelIn(BaseModel):
+    reason: str | None = Field(default=None, max_length=200)
+
+
+@router.get("/{assignment_id}/cancel-preview", response_model=CancelTermsOut)
+async def cancel_preview(assignment_id: int, user: CurrentUser, db: DbDep):
+    return CancelTermsOut.of(await CancellationService(db).worker_preview(user, assignment_id))
+
+
+@router.post("/{assignment_id}/cancel", response_model=AssignmentStateOut)
+async def worker_cancel(
+    assignment_id: int,
+    body: WorkerCancelIn,
+    user: CurrentUser,
+    db: DbDep,
+    redis: RedisDep,
+    notifier: NotifierDep,
+    request: Request,
+    background: BackgroundTasks,
+):
+    """Ishchi ish boshlanishidan oldin bekor qiladi; o'rniga yangi ishchi izlanadi (TZ 11)."""
+    svc = CancellationService(db)
+    a, _ = await svc.worker_cancel(user, assignment_id, body.reason)
     _after_commit(background, svc, request, redis, notifier)
     return AssignmentStateOut.of(a)
 

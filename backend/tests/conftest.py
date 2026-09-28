@@ -61,6 +61,9 @@ class FakeNotifier:
     async def workday_event(self, assignment_id: int, kind: str) -> None:
         self.calls.append(("workday_event", assignment_id, kind))
 
+    async def order_event(self, order_id: int, kind: str) -> None:
+        self.calls.append(("order_event", order_id, kind))
+
 
 @pytest.fixture
 def settings(tmp_path) -> Settings:

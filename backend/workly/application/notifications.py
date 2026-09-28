@@ -18,6 +18,8 @@ class Notifier(Protocol):
 
     async def workday_event(self, assignment_id: int, kind: str) -> None: ...
 
+    async def order_event(self, order_id: int, kind: str) -> None: ...
+
 
 class NullNotifier:
     async def verification_result(self, user_id: int, approved: bool, reason: str | None) -> None:
@@ -39,4 +41,7 @@ class NullNotifier:
         return None
 
     async def workday_event(self, assignment_id: int, kind: str) -> None:
+        return None
+
+    async def order_event(self, order_id: int, kind: str) -> None:
         return None
