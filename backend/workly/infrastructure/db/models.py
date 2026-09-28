@@ -168,6 +168,10 @@ class WorkerProfile(TimestampMixin, Base):
     rejection_comment: Mapped[str | None] = mapped_column(String(500))
     duplicate_of_user_id: Mapped[int | None] = mapped_column(BigInteger)
     badges: Mapped[list[str]] = mapped_column(JSON, default=list)
+    # Matching (TZ 4, 7, 11)
+    reliability: Mapped[int] = mapped_column(SmallInteger, default=100)
+    available_now_until: Mapped[datetime | None]  # "Hozir bo'shman"
+    missed_offers_streak: Mapped[int] = mapped_column(SmallInteger, default=0)
 
     user: Mapped[User] = relationship(foreign_keys=[user_id], lazy="joined")
     skills: Mapped[list["WorkerSkill"]] = relationship(lazy="selectin", cascade="all, delete-orphan")
@@ -349,6 +353,10 @@ class Order(TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(20), index=True)
     cancelled_at: Mapped[datetime | None]
     cancel_reason: Mapped[str | None] = mapped_column(String(300))
+    # matching
+    waves_sent: Mapped[int] = mapped_column(SmallInteger, default=0)
+    last_wave_at: Mapped[datetime | None]
+    matching_alerted_at: Mapped[datetime | None]
 
     assignments: Mapped[list["Assignment"]] = relationship(
         back_populates="order", lazy="selectin", cascade="all, delete-orphan", order_by="Assignment.slot_no"
@@ -372,3 +380,23 @@ class Assignment(TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(16), default="open", index=True)
 
     order: Mapped[Order] = relationship(back_populates="assignments")
+
+
+class Offer(Base):
+    __tablename__ = "offers"
+    __table_args__ = (Index("ix_offers_status_expires", "status", "expires_at"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), index=True)
+    worker_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    wave: Mapped[int] = mapped_column(SmallInteger)  # 0 — ochiq lentadan
+    score: Mapped[float | None] = mapped_column(Float)
+    distance_km: Mapped[float | None] = mapped_column(Float)
+    status: Mapped[str] = mapped_column(String(10), default="sent")
+    sent_at: Mapped[datetime] = mapped_column(default=utcnow)
+    expires_at: Mapped[datetime]
+    responded_at: Mapped[datetime | None]
+    assignment_id: Mapped[int | None] = mapped_column(ForeignKey("assignments.id"))
+    telegram_message_id: Mapped[int | None] = mapped_column(BigInteger)
+
+    order: Mapped[Order] = relationship(lazy="joined")

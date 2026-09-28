@@ -22,6 +22,7 @@ def create_dispatcher(maker: async_sessionmaker[AsyncSession], settings: Setting
     dp = Dispatcher(storage=MemoryStorage(), settings=settings)
     dp.update.outer_middleware(DbSessionMiddleware(maker))
     dp.message.middleware(ThrottlingMiddleware())
+    # redis va notifier API lifespan'ida workflow_data orqali beriladi
     dp.include_router(setup_routers())
     return dp
 

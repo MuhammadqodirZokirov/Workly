@@ -45,6 +45,18 @@ class FakeNotifier:
     async def business_verification_result(self, user_id: int, approved: bool, reason: str | None) -> None:
         self.calls.append(("business", user_id, approved, reason))
 
+    async def offer_new(self, offer_id: int) -> None:
+        self.calls.append(("offer_new", offer_id))
+
+    async def worker_assigned(self, offer_id: int) -> None:
+        self.calls.append(("worker_assigned", offer_id))
+
+    async def worker_set_busy(self, user_id: int) -> None:
+        self.calls.append(("worker_set_busy", user_id))
+
+    async def matching_exhausted(self, order_id: int) -> None:
+        self.calls.append(("matching_exhausted", order_id))
+
 
 @pytest.fixture
 def settings(tmp_path) -> Settings:
@@ -53,6 +65,7 @@ def settings(tmp_path) -> Settings:
         jwt_secret="test-secret-test-secret-test-secret",
         bot_token=BOT_TOKEN,
         bot_mode="off",
+        scheduler_enabled=False,
         database_url=DB_URL,
         auth_rate_limit_per_min=1000,
         data_encryption_key=FERNET_KEY,

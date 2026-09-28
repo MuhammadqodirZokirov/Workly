@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Header, Query
+from fastapi import APIRouter, BackgroundTasks, Header, Query, Request
 
 from workly.application.orders import OrderParams, OrderService, QuoteResult
+from workly.domain.names import public_name
 from workly.domain.orders import OrderStatus
+from workly.infrastructure.db.models import User, WorkerProfile
+from workly.workers.scheduler import start_matching
 
 from ..deps import CurrentUser, DbDep, RedisDep, SettingsDep
 from ..schemas_orders import CancelIn, OrderCreateIn, OrderIn, OrderOut, PriceOut, QuoteOut, RepeatIn
@@ -75,10 +78,15 @@ async def create(
     db: DbDep,
     redis: RedisDep,
     settings: SettingsDep,
+    request: Request,
+    background: BackgroundTasks,
     idempotency_key: str = Header(alias="Idempotency-Key", min_length=8, max_length=64),
 ):
     order = await OrderService(db, redis, settings).create(user, body.quote_id, idempotency_key, body.accept_rules)
-    return OrderOut.of(order)
+    if order.status == OrderStatus.MATCHING and order.waves_sent == 0:
+        # Birinchi to'lqin commit'dan keyin darhol; muvaffaqiyatsiz bo'lsa scheduler 30 s ichida yuboradi
+        background.add_task(start_matching, request.app.state.maker, redis, request.app.state.notifier, order.id)
+    return await _order_out(db, order)
 
 
 @router.get("", response_model=list[OrderOut])
@@ -91,17 +99,19 @@ async def list_orders(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
-    return [OrderOut.of(o) for o in await OrderService(db, redis, settings).list_own(user, status, limit, offset)]
+    return [
+        await _order_out(db, o) for o in await OrderService(db, redis, settings).list_own(user, status, limit, offset)
+    ]
 
 
 @router.get("/{order_id}", response_model=OrderOut)
 async def get_order(order_id: int, user: CurrentUser, db: DbDep, redis: RedisDep, settings: SettingsDep):
-    return OrderOut.of(await OrderService(db, redis, settings).get(user, order_id))
+    return await _order_out(db, await OrderService(db, redis, settings).get(user, order_id))
 
 
 @router.post("/{order_id}/cancel", response_model=OrderOut)
 async def cancel(order_id: int, body: CancelIn, user: CurrentUser, db: DbDep, redis: RedisDep, settings: SettingsDep):
-    return OrderOut.of(await OrderService(db, redis, settings).cancel(user, order_id, body.reason))
+    return await _order_out(db, await OrderService(db, redis, settings).cancel(user, order_id, body.reason))
 
 
 @router.post("/{order_id}/repeat", response_model=QuoteOut)
@@ -110,3 +120,15 @@ async def repeat(order_id: int, body: RepeatIn, user: CurrentUser, db: DbDep, re
     svc = OrderService(db, redis, settings)
     params = await svc.repeat_params(user, order_id, body.date, body.start_time)
     return _quote_out(await svc.quote(user, params))
+
+
+async def _order_out(db, order) -> OrderOut:
+    """Tayinlangan ishchi: ommaviy ism, reyting kartasi va telefon (tayinlovdan keyin ochiladi)."""
+    out = OrderOut.of(order)
+    for a in out.assignments:
+        if a.worker_id:
+            profile = await db.get(WorkerProfile, a.worker_id)
+            user = await db.get(User, a.worker_id)
+            a.worker_name = public_name(profile.first_name, profile.last_name) if profile else None
+            a.worker_phone = user.phone if user else None
+    return out

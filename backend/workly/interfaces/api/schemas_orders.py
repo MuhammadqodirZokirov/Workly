@@ -61,6 +61,8 @@ class AssignmentOut(BaseModel):
     slot_no: int
     worker_id: int | None
     status: str
+    worker_name: str | None = None
+    worker_phone: str | None = None
 
 
 class OrderOut(BaseModel):

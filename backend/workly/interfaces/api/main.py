@@ -22,6 +22,7 @@ from .routers import (
     catalog,
     employer,
     files,
+    matching,
     me,
     orders,
     webhooks,
@@ -75,11 +76,22 @@ async def lifespan(app: FastAPI):
             await bot.delete_webhook()
             polling_task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
 
-    app.state.notifier = BotNotifier(bot, app.state.maker, app.state.sms)
+    app.state.notifier = BotNotifier(bot, app.state.maker, app.state.sms, settings)
+    if dp is not None:
+        dp.workflow_data.update(redis=app.state.redis, notifier=app.state.notifier)
+    stop = asyncio.Event()
+    scheduler_task = None
+    if settings.scheduler_enabled:
+        from workly.workers.scheduler import run_forever
+
+        scheduler_task = asyncio.create_task(run_forever(app.state.maker, app.state.redis, app.state.notifier, stop))
 
     try:
         yield
     finally:
+        stop.set()
+        if scheduler_task:
+            await scheduler_task
         if polling_task:
             with contextlib.suppress(RuntimeError):
                 await dp.stop_polling()
@@ -116,6 +128,7 @@ def create_app(settings: Settings | None = None, *, use_lifespan: bool = True) -
         workers_public,
         employer,
         orders,
+        matching,
         admin_verification,
         admin_employers,
         admin_catalog,

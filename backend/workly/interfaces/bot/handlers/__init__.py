@@ -1,6 +1,6 @@
 from aiogram import F, Router
 
-from . import contact, errors, help, start
+from . import contact, errors, help, offers, start
 
 
 def setup_routers() -> Router:
@@ -12,5 +12,6 @@ def setup_routers() -> Router:
         start.create_router(),
         help.create_router(),
         contact.create_router(),
+        offers.create_router(),
     )
     return router

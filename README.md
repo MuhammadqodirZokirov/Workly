@@ -63,7 +63,7 @@ ruff check . && ruff format --check .
 | Blok (TZ 22) | Holat |
 |---|---|
 | 1. Backend yadrosi: auth, profillar, katalog, hududlar | **Tayyor**: auth, `/me`, katalog; ishchi profili, jadval, hujjatlar (shifrlangan), verifikatsiya; employer profili (jismoniy/biznes) va STIR tekshiruvi; ommaviy rezyume; audit jurnali |
-| 2. Buyurtma, matching, lenta, bot | **Boshlandi**: narxlash (Faza 1, TZ 8), buyurtma yaratish (15 daqiqalik narx, idempotency), ro'yxat, bekor qilish, takrorlash, admin narxlari. Qolgan: matching, to'lqinlar, lenta, bot tugmalari |
+| 2. Buyurtma, matching, lenta, bot | **Deyarli tayyor**: narxlash, buyurtma yaratish; matching (ball, to'lqinlar, sovuq start), atomik qabul, ochiq lenta, scheduler (30 s), botda Qabul/Rad. Qolgan: sevimli/bloklangan ishchilar, T−60 qisman to'lgan buyurtma tanlovi, tayinlangandan keyin bekor qilish |
 | 3. Check-in, yakunlash, baho | — |
 | 4. Web frontend, 3 til | — |
 | 5. Admin: Refine + admin bot | — |
@@ -95,6 +95,11 @@ ruff check . && ruff format --check .
 | POST | `/api/v1/orders` | `quote_id` + `accept_rules`, `Idempotency-Key` sarlavhasi majburiy. Birinchi buyurtma ≤ 3 ishchi; yangi employerda 10+ — admin tasdig'i |
 | GET | `/api/v1/orders`, `/orders/{id}` | O'z buyurtmalari |
 | POST | `/api/v1/orders/{id}/cancel`, `/repeat` | Bekor qilish (hozircha tayinlovgacha); oldingi parametrlar bilan yangi narx |
+| POST | `/api/v1/worker/status` | "Hozir bo'shman" (8 soat) — shoshilinch ishlar uchun |
+| GET | `/api/v1/worker/offers` | Faol takliflar: tuman, masofa, vaqt, "Siz olasiz"; aniq manzil va telefonsiz |
+| POST | `/api/v1/offers/{id}/accept`, `/decline` | Atomik qabul (qulf + FOR UPDATE); qabul qilgach manzil va employer telefoni ochiladi |
+| GET | `/api/v1/jobs/open`, POST `/jobs/{order_id}/take` | Ochiq ishlar lentasi (1-to'lqindan keyin), birinchi olgan oladi |
+| GET | `/api/v1/worker/assignments` | Tayinlangan ishlar: manzil, mo'ljal, xarita nuqtasi, employer telefoni |
 | GET, POST | `/api/v1/admin/prices` | Narx versiyalari (kategoriya yoki mutaxassislik; min/max default ×0.75 / ×2) |
 | POST | `/api/v1/admin/orders/{id}/approve` | Katta buyurtmani tasdiqlash |
 | GET | `/api/v1/admin/verifications` | Moderator navbati (eng eskisi birinchi), takroriy hujjat belgisi |
@@ -102,6 +107,14 @@ ruff check . && ruff format --check .
 | POST | `/api/v1/admin/verifications/{user_id}/approve`, `/reject` | Belgilar (`qualified`, `background_checked`) yoki rad sababi shabloni; ishchiga bot/SMS xabar |
 
 Xato formati: `{"code": "...", "message": "...", "details": ...}`.
+
+## Matching (TZ 7)
+
+- Nomzod: tasdiqlangan, mutaxassislik mos, tuman yoki uydan ≤ 10 km, jadvalga mos (shoshilinchda — "Hozir bo'shman"), vaqti kesishmaydi, ishonchlilik ≥ 40
+- Ball: `S = 0.30R + 0.20C + 0.15T + 0.15D + 0.10E + 0.10A`; to'lqin `min(3 × bo'sh o'rin, 15)`, kamida 5; har 5-o'rin "Yangi" ishchiga
+- Taklif 10 daqiqa (2 soat ichida boshlansa — 5); ko'pi bilan 3 to'lqin, keyin adminga va employerga signal
+- Scheduler API jarayonida har 30 s ishlaydi (Redis qulfi bilan bitta nusxa); muddatlar bazada — qayta ishga tushsa ham yo'qolmaydi
+- Ketma-ket 3 ta javobsiz taklif — "Band"; rad etish jazolanmaydi
 
 ## Verifikatsiya
 

@@ -118,3 +118,22 @@ def check_description(text: str | None) -> None:
         raise ValidationFailed(
             "Tavsifda taqiqlangan ish turi aniqlandi", code="PROHIBITED_CONTENT", details={"match": m.group(0)}
         )
+
+
+class OfferStatus(StrEnum):
+    SENT = "sent"
+    ACCEPTED = "accepted"
+    DECLINED = "declined"
+    EXPIRED = "expired"
+    WITHDRAWN = "withdrawn"
+
+
+MATCHING_STATUSES = {OrderStatus.MATCHING, OrderStatus.PARTIALLY_ASSIGNED}
+BUSY_ASSIGNMENT_STATUSES = {"assigned", "arrived", "working"}
+
+
+def derive_status(open_slots: int, filled_slots: int) -> OrderStatus:
+    """Buyurtma holati tayinlovlardan hisoblanadi (TZ 6-bo'lim)."""
+    if open_slots == 0 and filled_slots > 0:
+        return OrderStatus.ASSIGNED
+    return OrderStatus.PARTIALLY_ASSIGNED if filled_slots else OrderStatus.MATCHING

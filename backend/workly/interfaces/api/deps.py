@@ -33,7 +33,9 @@ async def get_db(request: Request) -> AsyncIterator[AsyncSession]:
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 RedisDep = Annotated[Redis, Depends(get_redis)]
-DbDep = Annotated[AsyncSession, Depends(get_db)]
+# scope="function": commit javobdan va fon vazifalaridan OLDIN — fon vazifalari (bildirishnoma,
+# birinchi to'lqin) o'z sessiyasida yangi ma'lumotni ko'rishi uchun
+DbDep = Annotated[AsyncSession, Depends(get_db, scope="function")]
 
 
 def get_client_info(request: Request) -> ClientInfo:
