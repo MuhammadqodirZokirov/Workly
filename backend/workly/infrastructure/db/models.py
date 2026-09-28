@@ -173,6 +173,7 @@ class WorkerProfile(TimestampMixin, Base):
     badges: Mapped[list[str]] = mapped_column(JSON, default=list)
     # Matching (TZ 4, 7, 11)
     reliability: Mapped[int] = mapped_column(SmallInteger, default=100)
+    suspended_until: Mapped[datetime | None]  # kelmaslik / ishonchlilik < 40 (TZ 11)
     available_now_until: Mapped[datetime | None]  # "Hozir bo'shman"
     missed_offers_streak: Mapped[int] = mapped_column(SmallInteger, default=0)
 
@@ -301,6 +302,7 @@ class EmployerProfile(TimestampMixin, Base):
     rejection_reason: Mapped[str | None] = mapped_column(String(32))
     rejection_comment: Mapped[str | None] = mapped_column(String(500))
     badges: Mapped[list[str]] = mapped_column(JSON, default=list)
+    reliability: Mapped[int] = mapped_column(SmallInteger, default=100)
 
     user: Mapped[User] = relationship(foreign_keys=[user_id], lazy="joined")
 
@@ -381,8 +383,23 @@ class Assignment(TimestampMixin, Base):
     slot_no: Mapped[int] = mapped_column(SmallInteger)
     worker_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
     status: Mapped[str] = mapped_column(String(16), default="open", index=True)
+    # Ish kuni (TZ 10)
+    arrived_at: Mapped[datetime | None]  # check-in (GPS + selfie) yoki employer qo'lda
+    arrival_confirmed_at: Mapped[datetime | None]  # employer "Ha, shu odam" yoki 15 daqiqadan keyin avtomatik
+    finished_at: Mapped[datetime | None]
+    confirmed_at: Mapped[datetime | None]
+    auto_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+    cash_received: Mapped[int | None] = mapped_column(BigInteger)
+    no_show_at: Mapped[datetime | None]
+    problem: Mapped[str | None] = mapped_column(String(300))  # "Muammo bor" — admin ko'radi
+    # Bir martalik hodisalar (eslatmalar, T+15/T+30 ...) — qayta yuborilmasligi uchun
+    timeline: Mapped[dict] = mapped_column(JSON, default=dict)
 
     order: Mapped[Order] = relationship(back_populates="assignments")
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("timeline", {})
+        super().__init__(**kwargs)
 
 
 class Offer(Base):
@@ -403,3 +420,52 @@ class Offer(Base):
     telegram_message_id: Mapped[int | None] = mapped_column(BigInteger)
 
     order: Mapped[Order] = relationship(lazy="joined")
+
+
+# ---------------- Ish kuni, baho, intizom (TZ 10, 11, 13) ----------------
+class CheckIn(Base):
+    __tablename__ = "checkins"
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    assignment_id: Mapped[int] = mapped_column(ForeignKey("assignments.id", ondelete="CASCADE"), index=True)
+    lat: Mapped[float] = mapped_column(Float)
+    lon: Mapped[float] = mapped_column(Float)
+    accuracy_m: Mapped[float] = mapped_column(Float)
+    distance_m: Mapped[float] = mapped_column(Float)
+    selfie_key: Mapped[str | None] = mapped_column(String(200))  # 30 kun saqlanadi
+    accepted: Mapped[bool] = mapped_column(Boolean)
+    reason: Mapped[str | None] = mapped_column(String(40))
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+
+
+class Review(Base):
+    """Ikki tomonlama yashirin baho: ikkalasi baholagach yoki 48 soatdan keyin ochiladi (TZ 13)."""
+
+    __tablename__ = "reviews"
+    __table_args__ = (UniqueConstraint("assignment_id", "author_id"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    assignment_id: Mapped[int] = mapped_column(ForeignKey("assignments.id", ondelete="CASCADE"), index=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    target_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    target_role: Mapped[str] = mapped_column(String(10))  # worker | employer
+    # Qo'lda — 1..5 butun; avtomatik — joriy o'rtacha (masalan 4.5), shuning uchun kasr
+    rating: Mapped[float] = mapped_column(Float)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    comment: Mapped[str | None] = mapped_column(String(300))
+    is_auto: Mapped[bool] = mapped_column(Boolean, default=False)
+    hidden_by_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)
+    visible_at: Mapped[datetime | None] = mapped_column(index=True)
+
+
+class ReliabilityEvent(Base):
+    __tablename__ = "reliability_events"
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    role: Mapped[str] = mapped_column(String(10))
+    delta: Mapped[int] = mapped_column(SmallInteger)
+    reason: Mapped[str] = mapped_column(String(40))
+    assignment_id: Mapped[int | None] = mapped_column(ForeignKey("assignments.id"))
+    created_at: Mapped[datetime] = mapped_column(default=utcnow)

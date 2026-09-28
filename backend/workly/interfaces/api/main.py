@@ -19,6 +19,7 @@ from .routers import (
     admin_catalog,
     admin_employers,
     admin_verification,
+    assignments,
     auth,
     catalog,
     employer,
@@ -85,7 +86,9 @@ async def lifespan(app: FastAPI):
     if settings.scheduler_enabled:
         from workly.workers.scheduler import run_forever
 
-        scheduler_task = asyncio.create_task(run_forever(app.state.maker, app.state.redis, app.state.notifier, stop))
+        scheduler_task = asyncio.create_task(
+            run_forever(app.state.maker, app.state.redis, app.state.notifier, stop, app.state.storage)
+        )
 
     try:
         yield
@@ -130,6 +133,7 @@ def create_app(settings: Settings | None = None, *, use_lifespan: bool = True) -
         employer,
         orders,
         matching,
+        assignments,
         admin_auth,
         admin_verification,
         admin_employers,

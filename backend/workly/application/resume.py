@@ -3,7 +3,7 @@
 Yashirin: telefon (tayinlovgacha), hujjat, selfie, aniq manzil va uy nuqtasi.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,19 +14,7 @@ from workly.domain.users import UserStatus
 from workly.domain.worker import NEW_BADGE_MAX_REVIEWS, FileKind, VerificationStatus
 from workly.infrastructure.db.models import WorkerFile, WorkerProfile
 
-
-@dataclass
-class WorkerStats:
-    """Reyting va intizom ko'rsatkichlari. Baho, tayinlov va jarima jadvallari 2–3-bloklarda qo'shiladi;
-    ungacha yangi ishchining boshlang'ich qiymatlari qaytadi (TZ 11, 13-bo'limlar)."""
-
-    rating: float | None = None
-    reviews_count: int = 0
-    reliability: int = 100
-    completed_jobs: int = 0
-    no_shows_90d: int = 0
-    avg_response_minutes: float | None = None
-    recent_reviews: list = field(default_factory=list)
+from .ratings import WorkerStats, worker_stats
 
 
 @dataclass
@@ -72,5 +60,5 @@ class ResumeService:
             skills=[(s.category_id, s.experience, specs.get(s.category_id, [])) for s in profile.skills],
             district_ids=[d.district_id for d in profile.districts],
             badges=list(profile.badges or []),
-            stats=WorkerStats(),
+            stats=await worker_stats(self.db, worker_id),
         )

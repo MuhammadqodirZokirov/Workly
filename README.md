@@ -19,7 +19,7 @@ backend/                     FastAPI + aiogram 3, bitta jarayon (Faza 1-lite)
     infrastructure/          config, DB (SQLAlchemy 2 async), JWT, SMS (Eskiz), seed
     interfaces/api/          FastAPI routerlar /api/v1
     interfaces/bot/          aiogram 3 bot (xabarlar, requestContact)
-    workers/                 scheduler (keyingi blok)
+    workers/                 scheduler (matching, ish kuni)
   alembic/                   migratsiyalar
   tests/                     pytest (SQLite yoki PostgreSQL)
 web/                         React 19 + Vite + Tailwind: PWA + Telegram Mini App
@@ -75,8 +75,8 @@ ruff check . && ruff format --check .
 |---|---|
 | 1. Backend yadrosi: auth, profillar, katalog, hududlar | **Tayyor**: auth, `/me`, katalog; ishchi profili, jadval, hujjatlar (shifrlangan), verifikatsiya; employer profili (jismoniy/biznes) va STIR tekshiruvi; ommaviy rezyume; audit jurnali |
 | 2. Buyurtma, matching, lenta, bot | **Deyarli tayyor**: narxlash, buyurtma yaratish; matching (ball, to'lqinlar, sovuq start), atomik qabul, ochiq lenta, scheduler (30 s), botda Qabul/Rad. Qolgan: sevimli/bloklangan ishchilar, T−60 qisman to'lgan buyurtma tanlovi, tayinlangandan keyin bekor qilish |
-| 3. Check-in, yakunlash, baho | — |
-| 4. Web frontend, 3 til | **Boshlandi**: kirish (Telegram / SMS), rol tanlash, ishchi (takliflar, lenta, tayinlovlar, profil va hujjatlar), ish beruvchi (buyurtma + narx, buyurtmalar), 3 til. Qolgan: xarita, chat, baho, push |
+| 3. Check-in, yakunlash, baho | **Tayyor**: check-in (GPS ≤ 200 m + jonli selfie, shifrlangan, 30 kunda o'chadi) va employer tasdig'i; kechikish T+15/T+30, T+60 kelmaslik → jarima va almashtirish to'lqini; yakunlash, employer tasdig'i yoki muammo, 24 soatda avtotasdiq; naqd pul qaydi; ikki tomonlama yashirin baho (48 soat), bayes reyting, ishonchlilik indeksi |
+| 4. Web frontend, 3 til | **Boshlandi**: kirish (Telegram / SMS), rol tanlash, ishchi (takliflar, lenta, tayinlovlar, profil va hujjatlar), ish beruvchi (buyurtma + narx, buyurtmalar), 3 til, ish kuni (check-in, tasdiq, baho). Qolgan: xarita, chat, push |
 | 5. Admin: Refine + admin bot | **Boshlandi**: web ilova ichida `/admin` (TOTP 2FA): verifikatsiya va biznes navbati. Qolgan: buyurtmalar, operatsiya taxtasi, narx/kategoriya sozlamalari, admin bot |
 | 6. Test, deploy | CI tayyor; server deploy — keyin |
 
@@ -115,6 +115,11 @@ ruff check . && ruff format --check .
 | POST | `/api/v1/admin/orders/{id}/approve` | Katta buyurtmani tasdiqlash |
 | GET | `/api/v1/admin/verifications` | Moderator navbati (eng eskisi birinchi), takroriy hujjat belgisi |
 | GET | `/api/v1/admin/verifications/{user_id}` | Hujjat raqami va 5 daqiqalik imzoli fayl havolalari; audit jurnaliga yoziladi |
+| POST | `/api/v1/assignments/{id}/checkin` | multipart: `lat`, `lon`, `accuracy`, `selfie`; oyna T−30…T+60 daqiqa |
+| POST | `/api/v1/assignments/{id}/confirm-arrival` | Employer: `same_person` (yo'q → muammo, adminga) |
+| POST | `/api/v1/assignments/{id}/finish`, `/confirm`, `/cash-received` | Ishchi tugatdi → employer tasdiqlaydi yoki muammo (≥ 20 belgi); naqd pul qaydi |
+| POST | `/api/v1/assignments/{id}/replace` | Employer: ishchi 30 daqiqadan ko'p kechiksa |
+| POST, GET | `/api/v1/assignments/{id}/review`, `/reviews` | Baho 1–5 + teglar; ikkala tomon baholaguncha yashirin |
 | POST | `/api/v1/admin/verifications/{user_id}/approve`, `/reject` | Belgilar (`qualified`, `background_checked`) yoki rad sababi shabloni; ishchiga bot/SMS xabar |
 
 Xato formati: `{"code": "...", "message": "...", "details": ...}`.
@@ -126,6 +131,14 @@ Xato formati: `{"code": "...", "message": "...", "details": ...}`.
 - Taklif 10 daqiqa (2 soat ichida boshlansa — 5); ko'pi bilan 3 to'lqin, keyin adminga va employerga signal
 - Scheduler API jarayonida har 30 s ishlaydi (Redis qulfi bilan bitta nusxa); muddatlar bazada — qayta ishga tushsa ham yo'qolmaydi
 - Ketma-ket 3 ta javobsiz taklif — "Band"; rad etish jazolanmaydi
+
+## Ish kuni (TZ 10, 13, 15)
+
+- **Check-in**: T−30 dan T+60 gacha; GPS buyurtma nuqtasidan ≤ 200 m, aniqlik ≤ 100 m. Rad etilgan urinish ham dalil sifatida saqlanadi (selfie'siz). Employer 15 daqiqada javob bermasa — avtomatik "ishlamoqda"
+- **Kechikish**: T+15 ishchi va employerga eslatma, T+30 employer "almashtirish" tugmasi + adminlarga qo'ng'iroq signali, T+60 — kelmadi
+- **Kelmaslik** (90 kun ichida): 1-marta −20, 2-marta −30 va 3 kun to'xtatish, 3-marta blok. Slot qayta ochiladi, almashtirish to'lqini "hozir bo'shman" ishchilardan boshlanadi
+- **Yakunlash**: employer 24 soatda tasdiqlamasa — avtotasdiq (20-soatda eslatma). Muammosiz ish +2 ishonchlilik, kechikish −3; indeks < 40 — takliflar to'xtaydi
+- **Baho**: ikkala tomon baholaguncha yashirin; 48 soatda baholanmasa — joriy o'rtacha bilan avtomatik (reytingga kirmaydi). Reyting: bayes (m=4.5, C=3), so'nggi 20 ta, eskilari kamroq vazn
 
 ## Verifikatsiya
 

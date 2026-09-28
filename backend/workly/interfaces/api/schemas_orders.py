@@ -63,6 +63,10 @@ class AssignmentOut(BaseModel):
     status: str
     worker_name: str | None = None
     worker_phone: str | None = None
+    arrived_at: datetime | None = None
+    finished_at: datetime | None = None
+    confirmed_at: datetime | None = None
+    problem: str | None = None
 
 
 class OrderOut(BaseModel):
@@ -116,7 +120,17 @@ class OrderOut(BaseModel):
             payment_mode=o.payment_mode,
             price=PriceOut(**price),
             assignments=[
-                AssignmentOut(id=a.id, slot_no=a.slot_no, worker_id=a.worker_id, status=a.status) for a in o.assignments
+                AssignmentOut(
+                    id=a.id,
+                    slot_no=a.slot_no,
+                    worker_id=a.worker_id,
+                    status=a.status,
+                    arrived_at=a.arrived_at,
+                    finished_at=a.finished_at,
+                    confirmed_at=a.confirmed_at,
+                    problem=a.problem,
+                )
+                for a in o.assignments
             ],
             created_at=o.created_at,
         )

@@ -6,7 +6,7 @@ from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from redis.asyncio import Redis
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from workly.domain.errors import Forbidden, InvalidState, NotFound
@@ -16,6 +16,7 @@ from workly.domain.matching import (
     MAX_DISTANCE_KM,
     MAX_MISSED_STREAK,
     MAX_WAVES,
+    MIN_RATING,
     MIN_RELIABILITY,
     WorkerSignals,
     compose_wave,
@@ -35,6 +36,7 @@ from workly.domain.orders import (
     OfferStatus,
     OrderStatus,
     derive_status,
+    derive_workday_status,
     ensure_order_transition,
 )
 from workly.domain.users import Role, UserStatus
@@ -50,10 +52,13 @@ from workly.infrastructure.db.models import (
 
 from .audit import record_transition
 from .notifications import Notifier
+from .ratings import rating_of
 
 log = logging.getLogger(__name__)
 TASHKENT = ZoneInfo("Asia/Tashkent")
 LOCK_TIMEOUT = 10
+REPLACEMENT_WINDOW = timedelta(hours=4)
+MIN_REVIEWS_FOR_RATING_FILTER = 5
 
 
 def utc(dt: datetime) -> datetime:
@@ -134,6 +139,8 @@ class MatchingService:
                 User.status == UserStatus.ACTIVE,
                 WorkerSpecialization.specialization_id == order.specialization_id,
                 WorkerProfile.reliability >= MIN_RELIABILITY,
+                # Kelmaslik yoki past ishonchlilik uchun to'xtatilganlar taklif olmaydi (TZ 11)
+                or_(WorkerProfile.suspended_until.is_(None), WorkerProfile.suspended_until <= self.now),
                 WorkerProfile.user_id != order.employer_id,
             )
         )
@@ -171,13 +178,16 @@ class MatchingService:
                     job_hours(order.duration),
                 ):
                     continue
-            # TODO(3-blok): reyting < 3.5 (≥ 5 baho) — baholar jadvali bilan; employer bloklagan ishchilar
+            # Reyting < 3.5 (≥ 5 baho) — taklif olmaydi (TZ 7, 13). TODO: employer bloklagan ishchilar
+            rating, reviews_count = await rating_of(self.db, p.user_id, "worker")
+            if reviews_count >= MIN_REVIEWS_FOR_RATING_FILTER and rating is not None and rating < MIN_RATING:
+                continue
             h = hist[p.user_id]
             skill = next((s for s in p.skills if s.category_id == order.category_id), None)
             signals = WorkerSignals(
                 worker_id=p.user_id,
-                rating=None,
-                reviews_count=0,
+                rating=rating if reviews_count else None,
+                reviews_count=reviews_count,
                 completion_rate=h["done"] / h["accepted"] if h["accepted"] else None,
                 avg_response_min=sum(h["resp"]) / len(h["resp"]) if h["resp"] else None,
                 distance_km=round(distance, 2),
@@ -189,8 +199,18 @@ class MatchingService:
         return out
 
     # ================= to'lqin =================
+    def is_replacement(self, order: Order) -> bool:
+        """Kelmagan/almashtirilgan ishchi o'rniga izlash — boshlanishdan keyin ham ruxsat (TZ 7, 10)."""
+        return any(a.status in ("no_show", "replaced") for a in order.assignments) and (
+            self.now < utc(order.starts_at) + REPLACEMENT_WINDOW
+        )
+
     async def run_wave(self, order: Order) -> list[Offer]:
-        if order.status not in MATCHING_STATUSES or utc(order.starts_at) <= self.now:
+        replacement = self.is_replacement(order)
+        if replacement:
+            if order.status not in MATCHING_STATUSES | {OrderStatus.ASSIGNED, OrderStatus.IN_PROGRESS}:
+                return []
+        elif order.status not in MATCHING_STATUSES or utc(order.starts_at) <= self.now:
             return []
         free = sum(1 for a in order.assignments if a.status == AssignmentStatus.OPEN)
         if free == 0 or order.waves_sent >= MAX_WAVES:
@@ -254,7 +274,9 @@ class MatchingService:
     async def _assign(self, offer: Offer, profile: WorkerProfile) -> Assignment:
         order = await self.db.scalar(select(Order).where(Order.id == offer.order_id).with_for_update())
         await self.db.refresh(order, attribute_names=["assignments"])
-        if order.status not in MATCHING_STATUSES or utc(order.starts_at) <= self.now:
+        if not self.is_replacement(order) and (
+            order.status not in MATCHING_STATUSES or utc(order.starts_at) <= self.now
+        ):
             offer.status = OfferStatus.WITHDRAWN
             await self.db.flush()
             raise InvalidState("Buyurtma endi ochiq emas", code="ORDER_CLOSED")
@@ -291,11 +313,16 @@ class MatchingService:
         return slot
 
     async def _update_order_status(self, order: Order, actor_id: int | None) -> None:
-        open_ = sum(1 for a in order.assignments if a.status == AssignmentStatus.OPEN)
-        filled = sum(1 for a in order.assignments if a.status in BUSY_ASSIGNMENT_STATUSES)
-        new = derive_status(open_, filled)
+        statuses = [a.status for a in order.assignments]
+        # Ish boshlangan bo'lsa (almashtirish) — holat ish kuni bo'yicha hisoblanadi
+        new = derive_workday_status(statuses)
+        if new is None:
+            open_ = statuses.count(AssignmentStatus.OPEN)
+            filled = sum(1 for st in statuses if st in BUSY_ASSIGNMENT_STATUSES)
+            new = derive_status(open_, filled)
         if new != order.status:
-            ensure_order_transition(order.status, new)
+            if not self.is_replacement(order):
+                ensure_order_transition(order.status, new)
             record_transition(self.db, "order", order.id, order.status, new, actor_id)
             order.status = new
 
@@ -399,7 +426,11 @@ class MatchingService:
         rows = await self.db.scalars(
             select(Assignment)
             .join(Order)
-            .where(Assignment.worker_id == user.id, Assignment.status.in_(BUSY_ASSIGNMENT_STATUSES))
+            .where(
+                Assignment.worker_id == user.id,
+                Assignment.status.in_(BUSY_ASSIGNMENT_STATUSES | {"finished", "confirmed", "disputed"}),
+                Order.starts_at >= self.now - timedelta(days=3),
+            )
             .order_by(Order.starts_at)
         )
         return list(rows)
@@ -430,9 +461,17 @@ class MatchingService:
         stats["expired_offers"] = len(expired)
         await self.db.flush()
 
-        orders = list(await self.db.scalars(select(Order).where(Order.status.in_(MATCHING_STATUSES))))
+        orders = list(
+            await self.db.scalars(
+                select(Order).where(
+                    Order.status.in_(MATCHING_STATUSES | {OrderStatus.ASSIGNED, OrderStatus.IN_PROGRESS})
+                )
+            )
+        )
         for order in orders:
-            if utc(order.starts_at) <= self.now:
+            if order.status not in MATCHING_STATUSES and not self.is_replacement(order):
+                continue
+            if utc(order.starts_at) <= self.now and not self.is_replacement(order):
                 if order.status == OrderStatus.MATCHING:
                     ensure_order_transition(order.status, OrderStatus.EXPIRED)
                     record_transition(

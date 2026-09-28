@@ -123,5 +123,9 @@ async def _assignment_out(db: AsyncSession, order: Order, assignment_id: int, di
         landmark=order.landmark,
         point=GeoPoint(lat=order.lat, lon=order.lon),
         employer_phone=phone,
+        arrived_at=a.arrived_at,
+        finished_at=a.finished_at,
+        confirmed_at=a.confirmed_at,
+        cash_received=a.cash_received,
         **await _card(db, order, distance),
     )

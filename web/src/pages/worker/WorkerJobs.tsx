@@ -2,6 +2,7 @@ import { Map as MapIcon, Phone } from "lucide-react";
 import { useState } from "react";
 
 import { Countdown, JobCardView, useErrorText } from "../../components/shared";
+import { WorkdayTag, WorkerDayActions } from "../../components/workday";
 import { Button, Chip, Empty, ErrorBox, Page, Spinner, TopBar } from "../../components/ui";
 import { phonePretty } from "../../lib/format";
 import { useI18n } from "../../lib/i18n";
@@ -17,26 +18,30 @@ export function AssignmentCard({ a }: { a: WorkerAssignment }) {
   return (
     <JobCardView
       job={a}
+      extra={<WorkdayTag status={a.status} />}
       footer={
-        <div className="space-y-2 rounded-xl bg-snow p-3 text-sm">
-          <p>
-            <b>{t("job.address")}:</b> {a.address_text}
-          </p>
-          {a.landmark && (
+        <div className="space-y-3">
+          <div className="space-y-2 rounded-xl bg-snow p-3 text-sm">
             <p>
-              <b>{t("job.landmark")}:</b> {a.landmark}
+              <b>{t("job.address")}:</b> {a.address_text}
             </p>
-          )}
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <a href={mapUrl} target="_blank" rel="noreferrer">
-              <Button variant="secondary"><MapIcon size={18} aria-hidden /> {t("job.map")}</Button>
-            </a>
-            {a.employer_phone && (
-              <a href={`tel:${a.employer_phone}`}>
-                <Button aria-label={phonePretty(a.employer_phone)}><Phone size={18} aria-hidden /> {t("job.call")}</Button>
-              </a>
+            {a.landmark && (
+              <p>
+                <b>{t("job.landmark")}:</b> {a.landmark}
+              </p>
             )}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <a href={mapUrl} target="_blank" rel="noreferrer">
+                <Button variant="secondary"><MapIcon size={18} aria-hidden /> {t("job.map")}</Button>
+              </a>
+              {a.employer_phone && (
+                <a href={`tel:${a.employer_phone}`}>
+                  <Button aria-label={phonePretty(a.employer_phone)}><Phone size={18} aria-hidden /> {t("job.call")}</Button>
+                </a>
+              )}
+            </div>
           </div>
+          <WorkerDayActions a={a} />
         </div>
       }
     />

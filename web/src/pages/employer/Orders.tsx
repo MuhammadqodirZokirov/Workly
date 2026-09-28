@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { useErrorText } from "../../components/shared";
+import { EmployerSlotActions, WorkdayTag } from "../../components/workday";
 import { Button, Card, Empty, ErrorBox, Page, Section, Spinner, Tag, TopBar } from "../../components/ui";
 import { api } from "../../lib/api";
 import { CategoryIcon } from "../../components/icons";
@@ -86,7 +87,8 @@ export function OrderDetail() {
   const order = useQuery({
     queryKey: ["orders", id],
     queryFn: () => api<Order>(`/orders/${id}`),
-    refetchInterval: (q) => (["matching", "partially_assigned"].includes(q.state.data?.status ?? "") ? 15_000 : false),
+    refetchInterval: (q) =>
+      ["matching", "partially_assigned", "assigned", "in_progress"].includes(q.state.data?.status ?? "") ? 15_000 : false,
   });
   const cancel = useMutation({
     mutationFn: () => api<Order>(`/orders/${id}/cancel`, { body: {} }),
@@ -126,23 +128,26 @@ export function OrderDetail() {
         <Section title={t("order.assigned")}>
           <div className="space-y-2">
             {o.assignments.map((a) => (
-              <Card key={a.id} className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-snow text-brand">
-                    <UserRound size={20} aria-hidden />
+              <Card key={a.id} className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-snow text-brand">
+                      <UserRound size={20} aria-hidden />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-medium">{a.worker_name ?? t("order.searching")}</span>
+                      {a.worker_id ? <WorkdayTag status={a.status} /> : null}
+                    </span>
                   </span>
-                  <span>
-                    <span className="block font-medium">{a.worker_name ?? t("order.searching")}</span>
-                    {a.worker_phone && <span className="block text-sm text-muted">{phonePretty(a.worker_phone)}</span>}
-                  </span>
-                </span>
-                {a.worker_phone ? (
-                  <a href={`tel:${a.worker_phone}`} aria-label={phonePretty(a.worker_phone)} className="rounded-full bg-brand-soft p-2.5 text-brand">
-                    <Phone size={20} aria-hidden />
-                  </a>
-                ) : (
-                  <Spinner />
-                )}
+                  {a.worker_phone ? (
+                    <a href={`tel:${a.worker_phone}`} aria-label={phonePretty(a.worker_phone)} className="rounded-full bg-brand-soft p-2.5 text-brand">
+                      <Phone size={20} aria-hidden />
+                    </a>
+                  ) : (
+                    !a.worker_id && <Spinner />
+                  )}
+                </div>
+                {a.worker_id && <EmployerSlotActions slot={a} startsAt={o.starts_at} />}
               </Card>
             ))}
           </div>

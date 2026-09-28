@@ -166,3 +166,38 @@ class BotNotifier:
         await self._tg(employer.telegram_id, t("matching_exhausted_employer", employer.lang, order.id))
         for admin_id in self.settings.admins if self.settings else []:
             await self._tg(admin_id, t("matching_exhausted_admin", "uz_latn", order.id, filled, order.workers_count))
+
+    # ---------- ish kuni (TZ 10, 15) ----------
+    # hodisa → kimga: w — ishchi, e — employer, a — adminlar
+    WORKDAY_RECIPIENTS = {
+        "remind_12h": "we",
+        "remind_1h": "we",
+        "remind_checkin": "w",
+        "late_15": "we",
+        "late_30": "ea",
+        "no_show": "we",
+        "worker_arrived": "e",
+        "work_finished": "e",
+        "confirm_reminder": "e",
+        "confirmed": "we",
+        "problem": "a",
+    }
+
+    async def workday_event(self, assignment_id: int, kind: str) -> None:
+        from workly.infrastructure.db.models import Assignment
+
+        async with self.maker() as db:
+            a = await db.get(Assignment, assignment_id)
+            if a is None:
+                return
+            await db.refresh(a, attribute_names=["order"])
+            worker = await db.get(User, a.worker_id) if a.worker_id else None
+            employer = await db.get(User, a.order.employer_id)
+        who = self.WORKDAY_RECIPIENTS.get(kind, "")
+        if "w" in who and worker:
+            await self._tg(worker.telegram_id, t(f"wd_{kind}_worker", worker.lang, a.order.id))
+        if "e" in who and employer:
+            await self._tg(employer.telegram_id, t(f"wd_{kind}_employer", employer.lang, a.order.id))
+        if "a" in who:
+            for admin_id in self.settings.admins if self.settings else []:
+                await self._tg(admin_id, t(f"wd_{kind}_admin", "uz_latn", a.order.id, assignment_id))

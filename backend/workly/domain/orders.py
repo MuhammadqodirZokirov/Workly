@@ -41,6 +41,7 @@ _TRANSITIONS = {
         OrderStatus.ASSIGNED,
         OrderStatus.CANCELLED,
         OrderStatus.EXPIRED,
+        OrderStatus.IN_PROGRESS,  # almashtirish slotidan keyin ham ish davom etadi
     },
     OrderStatus.PARTIALLY_ASSIGNED: {
         OrderStatus.MATCHING,
@@ -50,7 +51,7 @@ _TRANSITIONS = {
         OrderStatus.EXPIRED,
     },
     OrderStatus.ASSIGNED: {OrderStatus.PARTIALLY_ASSIGNED, OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED},
-    OrderStatus.IN_PROGRESS: {OrderStatus.COMPLETED},
+    OrderStatus.IN_PROGRESS: {OrderStatus.COMPLETED, OrderStatus.CANCELLED},
 }
 
 
@@ -69,6 +70,7 @@ class AssignmentStatus(StrEnum):
     CANCELLED = "cancelled"
     NO_SHOW = "no_show"
     REPLACED = "replaced"
+    DISPUTED = "disputed"  # "Muammo bor" — admin hal qiladi (Faza 1-lite)
 
 
 class ToolsBy(StrEnum):
@@ -137,3 +139,17 @@ def derive_status(open_slots: int, filled_slots: int) -> OrderStatus:
     if open_slots == 0 and filled_slots > 0:
         return OrderStatus.ASSIGNED
     return OrderStatus.PARTIALLY_ASSIGNED if filled_slots else OrderStatus.MATCHING
+
+
+TERMINAL_ASSIGNMENT_STATUSES = {"confirmed", "cancelled", "no_show", "replaced", "disputed"}
+ACTIVE_WORK_STATUSES = {"arrived", "working", "finished"}
+
+
+def derive_workday_status(statuses: list[str]) -> OrderStatus | None:
+    """Ish boshlangach: kimdir yetib kelgan — IN_PROGRESS; hammasi yakunlangan — COMPLETED."""
+    live = [s for s in statuses if s not in {"cancelled", "replaced"}]
+    if live and all(s in TERMINAL_ASSIGNMENT_STATUSES for s in live):
+        return OrderStatus.COMPLETED if any(s in {"confirmed", "disputed"} for s in live) else OrderStatus.CANCELLED
+    if any(s in ACTIVE_WORK_STATUSES or s == "confirmed" for s in live):
+        return OrderStatus.IN_PROGRESS
+    return None

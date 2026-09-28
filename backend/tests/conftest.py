@@ -58,6 +58,9 @@ class FakeNotifier:
     async def matching_exhausted(self, order_id: int) -> None:
         self.calls.append(("matching_exhausted", order_id))
 
+    async def workday_event(self, assignment_id: int, kind: str) -> None:
+        self.calls.append(("workday_event", assignment_id, kind))
+
 
 @pytest.fixture
 def settings(tmp_path) -> Settings:

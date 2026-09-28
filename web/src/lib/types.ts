@@ -94,6 +94,10 @@ export interface AssignmentSlot {
   status: string;
   worker_name: string | null;
   worker_phone: string | null;
+  arrived_at: string | null;
+  finished_at: string | null;
+  confirmed_at: string | null;
+  problem: string | null;
 }
 
 export interface Order {
@@ -146,6 +150,29 @@ export interface WorkerAssignment extends JobCard {
   landmark: string | null;
   point: GeoPoint;
   employer_phone: string | null;
+  arrived_at: string | null;
+  finished_at: string | null;
+  confirmed_at: string | null;
+  cash_received: number | null;
+}
+
+/** POST /assignments/{id}/... javobi */
+export interface AssignmentState {
+  id: number;
+  order_id: number;
+  status: string;
+  arrived_at: string | null;
+  arrival_confirmed_at: string | null;
+  finished_at: string | null;
+  confirmed_at: string | null;
+  auto_confirmed: boolean;
+  cash_received: number | null;
+  problem: string | null;
+}
+
+export interface Reviews {
+  reviewed_by_me: boolean;
+  visible: { rating: number; tags: string[]; comment: string | null; is_auto: boolean; mine: boolean }[];
 }
 
 export type VerificationStatus = "not_submitted" | "pending" | "verified" | "rejected" | "expired";

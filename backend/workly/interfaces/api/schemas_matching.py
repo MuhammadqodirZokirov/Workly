@@ -46,6 +46,10 @@ class WorkerAssignmentOut(JobCard):
     landmark: str | None
     point: GeoPoint
     employer_phone: str | None
+    arrived_at: datetime | None = None
+    finished_at: datetime | None = None
+    confirmed_at: datetime | None = None
+    cash_received: int | None = None
 
 
 class AvailabilityStatusIn(BaseModel):

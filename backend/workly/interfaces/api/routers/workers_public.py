@@ -37,5 +37,8 @@ async def resume(worker_id: int, db: DbDep, settings: SettingsDep, request: Requ
             no_shows_90d=s.no_shows_90d,
             avg_response_minutes=s.avg_response_minutes,
         ),
-        recent_reviews=s.recent_reviews,
+        recent_reviews=[
+            {"rating": r.rating, "tags": r.tags, "comment": r.comment, "created_at": r.created_at.isoformat()}
+            for r in s.recent_reviews
+        ],
     )
