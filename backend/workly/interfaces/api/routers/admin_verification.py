@@ -42,7 +42,8 @@ async def open_case(
     links = []
     for f in files:
         exp, sig = sign_file_url(f.storage_key, secret, settings.signed_url_ttl)
-        url = str(request.url_for("get_file", key=f.storage_key).include_query_params(exp=exp, sig=sig))
+        # Nisbiy yo'l — proksi/Nginx orqasida host noto'g'ri bo'lib qolmasin
+        url = f"{request.app.url_path_for('get_file', key=f.storage_key)}?exp={exp}&sig={sig}"
         links.append(
             FileLink(
                 id=f.id,

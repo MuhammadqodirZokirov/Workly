@@ -14,7 +14,7 @@ from workly.infrastructure.config import Settings
 from workly.infrastructure.crypto import DataCipher
 from workly.infrastructure.db.models import User
 from workly.infrastructure.db.session import session_scope
-from workly.infrastructure.security import decode_access_token
+from workly.infrastructure.security import decode_access_claims
 from workly.infrastructure.storage import FileStorage
 
 
@@ -68,13 +68,16 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
+    request: Request,
     db: DbDep,
     settings: SettingsDep,
     creds: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> User:
     if creds is None:
         raise Unauthorized()
-    user_id = decode_access_token(creds.credentials, settings.jwt_secret.get_secret_value())
+    claims = decode_access_claims(creds.credentials, settings.jwt_secret.get_secret_value())
+    request.state.mfa = bool(claims.get("mfa"))
+    user_id = int(claims["sub"])
     user = await db.get(User, user_id)
     if user is None or user.status == UserStatus.DELETED:
         raise Unauthorized()
@@ -86,13 +89,16 @@ async def get_current_user(
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def require_roles(*roles: Role):
-    """RBAC: foydalanuvchida kamida bitta rol bo'lishi kerak (super admin — hamma joyga)."""
+def require_roles(*roles: Role, mfa: bool = False):
+    """RBAC: foydalanuvchida kamida bitta rol bo'lishi kerak (super admin — hamma joyga).
+    mfa=True — admin panel: token TOTP bilan tasdiqlangan bo'lishi shart (TZ 3)."""
 
-    async def checker(user: CurrentUser) -> User:
+    async def checker(request: Request, user: CurrentUser, settings: SettingsDep) -> User:
         names = set(user.role_names)
         if Role.SUPER_ADMIN not in names and names.isdisjoint(roles):
             raise Forbidden()
+        if mfa and settings.admin_mfa_required and not getattr(request.state, "mfa", False):
+            raise Forbidden("Admin panel uchun 2FA kodi kerak", code="MFA_REQUIRED")
         return user
 
     return checker
@@ -113,7 +119,7 @@ def get_notifier(request: Request) -> Notifier:
 CipherDep = Annotated[DataCipher, Depends(get_cipher)]
 StorageDep = Annotated[FileStorage, Depends(get_storage)]
 NotifierDep = Annotated[Notifier, Depends(get_notifier)]
-Moderator = Annotated[User, Depends(require_roles(Role.MODERATOR, Role.ADMIN))]
+Moderator = Annotated[User, Depends(require_roles(Role.MODERATOR, Role.ADMIN, mfa=True))]
 
 
 def client_ip(request: Request) -> str | None:

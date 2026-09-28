@@ -302,10 +302,11 @@ async def test_duplicate_document_flagged(client, worker, catalog, moderator):
     assert q[second]["duplicate_of_user_id"] == first
 
 
-async def test_super_admin_can_moderate(client, login, db):
+async def test_super_admin_can_moderate(client, login, db, elevate):
     body, h = await login("+998908888888")
     db.add(UserRole(user_id=body["user"]["id"], role="super_admin"))
     await db.commit()
+    h = await elevate(body["user"]["id"], h)
     assert (await client.get(f"{API}/admin/verifications", headers=h)).status_code == 200
     user = await db.get(User, body["user"]["id"])
     assert user is not None

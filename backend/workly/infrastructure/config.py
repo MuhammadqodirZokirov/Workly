@@ -43,6 +43,10 @@ class Settings(BaseSettings):
 
     # Faza 1-lite pilot bepul: komissiya yo'q (TZ 22). YaTT ochilgach yoqiladi.
     commission_enabled: bool = False
+
+    # Admin panel: TOTP 2FA majburiy (TZ 3); sessiya — bitta smena
+    admin_mfa_required: bool = True
+    admin_session_hours: int = 8
     scheduler_enabled: bool = True
     max_upload_mb: int = 5
     cors_origins: list[str] = []

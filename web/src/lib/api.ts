@@ -92,18 +92,62 @@ export function refreshTokens(): Promise<boolean> {
   return refreshing;
 }
 
+/**
+ * Admin panel tokeni (TOTP bilan, 8 soat). sessionStorage — brauzer yopilsa o'chadi;
+ * refresh yo'q: muddati tugasa TOTP qayta so'raladi (TZ 3).
+ */
+export const adminToken = {
+  get(): string | null {
+    try {
+      return sessionStorage.getItem("workly.admin") ?? memory.get("workly.admin") ?? null;
+    } catch {
+      return memory.get("workly.admin") ?? null;
+    }
+  },
+  set(value: string) {
+    memory.set("workly.admin", value);
+    try {
+      sessionStorage.setItem("workly.admin", value);
+    } catch {
+      /* xotirada qoladi */
+    }
+  },
+  clear() {
+    memory.delete("workly.admin");
+    try {
+      sessionStorage.removeItem("workly.admin");
+    } catch {
+      /* */
+    }
+  },
+};
+
 export interface RequestOptions {
   method?: string;
   body?: unknown;
   form?: FormData;
   headers?: Record<string, string>;
   auth?: boolean;
+  /** admin panel so'rovlari — admin (mfa) tokeni bilan */
+  admin?: boolean;
 }
 
 export async function api<T>(path: string, opts: RequestOptions = {}, retried = false): Promise<T> {
   const headers: Record<string, string> = { ...opts.headers };
   if (opts.body !== undefined) headers["Content-Type"] = "application/json";
-  if (opts.auth !== false && tokens.access) headers.Authorization = `Bearer ${tokens.access}`;
+  const bearer = opts.admin ? adminToken.get() : tokens.access;
+  if (opts.auth !== false && bearer) headers.Authorization = `Bearer ${bearer}`;
+  if (opts.admin) {
+    const res = await fetch(`${BASE}${path}`, {
+      method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"),
+      headers,
+      body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    });
+    const data = res.status === 204 ? undefined : await res.json().catch(() => null);
+    if (res.status === 401 || data?.code === "MFA_REQUIRED") adminToken.clear();
+    if (!res.ok) throw new ApiError(res.status, data?.code ?? `HTTP_${res.status}`, data?.message ?? res.statusText, data?.details);
+    return data as T;
+  }
 
   const res = await fetch(`${BASE}${path}`, {
     method: opts.method ?? (opts.body !== undefined || opts.form ? "POST" : "GET"),

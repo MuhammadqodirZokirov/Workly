@@ -139,7 +139,8 @@ async def test_business_moderation(client, employer, district_id, moderator, not
         ("pending", "verified"),
     ]
     actions = [a.action for a in (await db.scalars(select(AuditLog).order_by(AuditLog.id))).all()]
-    assert actions == ["business.reject", "business.approve"]
+    assert [x for x in actions if x.startswith("business.")] == ["business.reject", "business.approve"]
+    assert "admin.login" in actions  # moderator 2FA bilan kirgan
 
 
 async def test_same_stir_shown(client, employer, district_id, moderator):

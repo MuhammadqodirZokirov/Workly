@@ -9,7 +9,7 @@ from ..deps import DbDep, RedisDep, SettingsDep, client_ip, require_roles
 from ..schemas_orders import OrderOut, PriceConfigIn, PriceConfigOut
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-_admin = require_roles(Role.ADMIN)
+_admin = require_roles(Role.ADMIN, mfa=True)
 
 
 def _out(r) -> PriceConfigOut:

@@ -156,13 +156,14 @@ async def test_wrong_specialization_and_no_price(client, emp, ids):
     assert r.json()["code"] == "PRICE_NOT_CONFIGURED"  # uy xizmatlari narxini admin kiritadi
 
 
-async def test_admin_price_then_cleaning_order(client, emp, ids, login, redis, db):
+async def test_admin_price_then_cleaning_order(client, emp, ids, login, redis, db, elevate):
     cats, district = ids
     _, h = emp
     await redis.delete("otp:cooldown:+998908888888")
     admin, ah = await login("+998908888888")
     db.add(UserRole(user_id=admin["user"]["id"], role="admin"))
     await db.commit()
+    ah = await elevate(admin["user"]["id"], ah)
     clean = cats["cleaning"]
     assert (
         await client.post(
@@ -197,7 +198,7 @@ async def test_admin_price_then_cleaning_order(client, emp, ids, login, redis, d
     assert next(p for p in prices if p["category_id"] == clean["id"])["base"] == 8000
 
 
-async def test_new_employer_big_order_needs_approval(client, emp, ids, db, login, redis):
+async def test_new_employer_big_order_needs_approval(client, emp, ids, db, login, redis, elevate):
     cats, district = ids
     uid, h = emp
     _, r = await place(client, h, order_body(cats, district, workers=2), key="first-order-1")
@@ -209,6 +210,7 @@ async def test_new_employer_big_order_needs_approval(client, emp, ids, db, login
     admin, ah = await login("+998908888888")
     db.add(UserRole(user_id=admin["user"]["id"], role="admin"))
     await db.commit()
+    ah = await elevate(admin["user"]["id"], ah)
     r2 = await client.post(f"{API}/admin/orders/{r.json()['id']}/approve", headers=ah)
     assert r2.json()["status"] == "matching"
 

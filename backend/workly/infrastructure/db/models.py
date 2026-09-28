@@ -32,6 +32,9 @@ class User(TimestampMixin, Base):
     lang: Mapped[str] = mapped_column(String(8), default="uz_latn")
     status: Mapped[str] = mapped_column(String(16), default="active")
     deleted_at: Mapped[datetime | None]
+    # Admin panel 2FA (TOTP). Sir shifrlangan (DataCipher)
+    totp_secret_enc: Mapped[str | None] = mapped_column(Text)
+    totp_enabled_at: Mapped[datetime | None]
 
     roles: Mapped[list["UserRole"]] = relationship(
         back_populates="user",

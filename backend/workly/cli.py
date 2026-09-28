@@ -2,6 +2,7 @@
 
 python -m workly.cli grant-role --phone +998901234567 --role super_admin
 python -m workly.cli revoke-role --phone +998901234567 --role moderator
+python -m workly.cli totp-setup --phone +998901234567   # admin panel 2FA (QR uchun URI)
 """
 
 import argparse
@@ -24,6 +25,16 @@ async def _run(args: argparse.Namespace) -> None:
             user = await db.scalar(select(User).where(User.phone == normalize_phone(args.phone)))
             if user is None:
                 raise SystemExit("Foydalanuvchi topilmadi — avval ilovaga kirsin (SMS yoki Telegram)")
+            if args.command == "totp-setup":
+                from workly.application.admin_auth import AdminAuthService
+                from workly.interfaces.api.main import build_cipher
+
+                settings = get_settings()
+                uri = await AdminAuthService(db, None, settings, build_cipher(settings)).setup(user)
+                await db.commit()
+                print("Authenticator ilovasida QR sifatida oching yoki URI'ni kiriting (sir faqat hozir ko'rsatiladi):")
+                print(uri)
+                return
             role = Role(args.role)
             if args.command == "grant-role":
                 if role in user.role_names:
@@ -46,6 +57,7 @@ def main() -> None:
         p = sub.add_parser(name)
         p.add_argument("--phone", required=True)
         p.add_argument("--role", required=True, choices=[r.value for r in Role])
+    sub.add_parser("totp-setup").add_argument("--phone", required=True)
     asyncio.run(_run(parser.parse_args()))
 
 

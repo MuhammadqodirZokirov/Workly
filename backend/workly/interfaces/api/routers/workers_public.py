@@ -19,7 +19,7 @@ async def resume(worker_id: int, db: DbDep, settings: SettingsDep, request: Requ
     avatar_url = None
     if r.avatar_key:
         exp, sig = sign_file_url(r.avatar_key, settings.jwt_secret.get_secret_value(), settings.signed_url_ttl)
-        avatar_url = str(request.url_for("get_file", key=r.avatar_key).include_query_params(exp=exp, sig=sig))
+        avatar_url = f"{request.app.url_path_for('get_file', key=r.avatar_key)}?exp={exp}&sig={sig}"
     s = r.stats
     return ResumeOut(
         worker_id=r.worker_id,

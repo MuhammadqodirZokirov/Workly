@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, Outlet, RouterProvider } from "react-rou
 import { AppLayout } from "./components/shared";
 import { FullScreenLoader } from "./components/ui";
 import { useAuth } from "./lib/auth";
+import { AdminGate, BusinessQueue, VerificationCase, VerificationQueue } from "./pages/admin/AdminPanel";
 import EmployerHome from "./pages/employer/EmployerHome";
 import NewOrder from "./pages/employer/NewOrder";
 import Orders, { OrderDetail } from "./pages/employer/Orders";
@@ -14,12 +15,21 @@ import WorkerHome from "./pages/worker/WorkerHome";
 import WorkerJobs from "./pages/worker/WorkerJobs";
 import WorkerProfilePage from "./pages/worker/WorkerProfilePage";
 
+const STAFF = ["moderator", "admin", "super_admin"];
+
 /** Kirmagan — xush kelibsiz/kirish; rol yo'q — rol tanlash; aks holda ilova */
 function Gate({ need }: { need: "guest" | "noRole" | "app" }) {
   const { me, loading, role } = useAuth();
   if (loading) return <FullScreenLoader />;
   const state = !me ? "guest" : !role ? "noRole" : "app";
   if (state === need) return <Outlet />;
+  if (state !== "guest") {
+    // Kirgandan keyin ?next= ga qaytish (masalan, /admin); faqat ichki yo'llar
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next?.startsWith("/") && !next.startsWith("//")) return <Navigate to={next} replace />;
+    // Faqat xodim (ishchi/employer roli yo'q) — to'g'ridan-to'g'ri admin panelga
+    if (state === "noRole" && me!.roles.some((r) => STAFF.includes(r))) return <Navigate to="/admin" replace />;
+  }
   return <Navigate to={state === "guest" ? "/welcome" : state === "noRole" ? "/role" : "/"} replace />;
 }
 
@@ -59,6 +69,16 @@ const router = createBrowserRouter([
       { path: "/orders/:id", element: <RoleOnly role="employer"><OrderDetail /></RoleOnly> },
       // Botdagi "Batafsil" tugmasi — takliflar ro'yxatiga
       { path: "/offers/:id", element: <Navigate to="/jobs" replace /> },
+    ],
+  },
+  {
+    path: "/admin",
+    element: <AdminGate />,
+    children: [
+      { index: true, element: <Navigate to="/admin/verifications" replace /> },
+      { path: "verifications", element: <VerificationQueue /> },
+      { path: "verifications/:id", element: <VerificationCase /> },
+      { path: "businesses", element: <BusinessQueue /> },
     ],
   },
   { path: "*", element: <Navigate to="/" replace /> },

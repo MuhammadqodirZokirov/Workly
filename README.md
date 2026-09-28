@@ -77,7 +77,7 @@ ruff check . && ruff format --check .
 | 2. Buyurtma, matching, lenta, bot | **Deyarli tayyor**: narxlash, buyurtma yaratish; matching (ball, to'lqinlar, sovuq start), atomik qabul, ochiq lenta, scheduler (30 s), botda Qabul/Rad. Qolgan: sevimli/bloklangan ishchilar, T−60 qisman to'lgan buyurtma tanlovi, tayinlangandan keyin bekor qilish |
 | 3. Check-in, yakunlash, baho | — |
 | 4. Web frontend, 3 til | **Boshlandi**: kirish (Telegram / SMS), rol tanlash, ishchi (takliflar, lenta, tayinlovlar, profil va hujjatlar), ish beruvchi (buyurtma + narx, buyurtmalar), 3 til. Qolgan: xarita, chat, baho, push |
-| 5. Admin: Refine + admin bot | — |
+| 5. Admin: Refine + admin bot | **Boshlandi**: web ilova ichida `/admin` (TOTP 2FA): verifikatsiya va biznes navbati. Qolgan: buyurtmalar, operatsiya taxtasi, narx/kategoriya sozlamalari, admin bot |
 | 6. Test, deploy | CI tayyor; server deploy — keyin |
 
 ## API (hozirgi)
@@ -143,3 +143,14 @@ Birinchi super admin yoki moderator (foydalanuvchi avval ilovaga kirgan bo'lishi
 python -m workly.cli grant-role --phone +998901234567 --role super_admin
 python -m workly.cli revoke-role --phone +998901234567 --role moderator
 ```
+
+### Admin panel (`/admin`) va 2FA
+
+Admin panel — web ilovaning `/admin` bo'limi. Kirish: oddiy SMS/Telegram → **TOTP kodi** (Google Authenticator, Authy va h.k.) → 8 soatlik admin sessiyasi. Admin API'lari (`/api/v1/admin/*`) TOTP'siz 403 `MFA_REQUIRED` qaytaradi.
+
+```bash
+python -m workly.cli totp-setup --phone +998901234567   # otpauth:// URI — Authenticator'da QR/qo'lda kiritiladi
+```
+
+- Sir shifrlangan saqlanadi; bir kodni qayta ishlatib bo'lmaydi; 5 xato → 15 daqiqa blok; har kirish va xato audit jurnalida
+- Hozircha bo'limlar: verifikatsiya navbati (hujjatlarni ko'rish, tasdiqlash/rad etish), biznes (STIR) tekshiruvi

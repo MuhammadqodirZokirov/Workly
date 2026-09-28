@@ -1,4 +1,5 @@
 import os
+import time
 
 import fakeredis
 import pytest
@@ -208,9 +209,31 @@ async def complete_worker(client, h, cats, districts):
 
 
 @pytest.fixture
-async def moderator(client, login, redis, db):
+async def moderator(client, login, redis, db, elevate):
     await redis.delete("otp:cooldown:+998909999999")
     body, h = await login("+998909999999")
     db.add(UserRole(user_id=body["user"]["id"], role="moderator"))
     await db.commit()
-    return body["user"]["id"], h
+    return body["user"]["id"], await elevate(body["user"]["id"], h)
+
+
+@pytest.fixture
+def elevate(client, db, app, redis):
+    """Xodim uchun TOTP sozlab, admin panel (mfa) tokenini qaytaradi."""
+    from workly.application.admin_auth import AdminAuthService
+    from workly.domain.totp import code_at
+    from workly.infrastructure.db.models import User
+
+    async def _elevate(user_id: int, headers: dict) -> dict:
+        user = await db.get(User, user_id)
+        await db.refresh(user)
+        svc = AdminAuthService(db, redis, app.state.settings, app.state.cipher)
+        uri = await svc.setup(user)
+        await db.commit()
+        secret = uri.split("secret=")[1].split("&")[0]
+        code = code_at(secret, int(time.time() // 30))
+        r = await client.post("/api/v1/admin/auth/totp", json={"code": code}, headers=headers)
+        assert r.status_code == 200, r.text
+        return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    return _elevate
