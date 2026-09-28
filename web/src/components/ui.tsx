@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 import { useNavigate } from "react-router";
 
@@ -107,7 +108,7 @@ export function Tag({ tone = "accent", children }: { tone?: "accent" | "brand" |
     muted: "bg-snow text-muted",
     danger: "bg-red-50 text-danger",
   }[tone];
-  return <span className={cx("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", styles)}>{children}</span>;
+  return <span className={cx("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold", styles)}>{children}</span>;
 }
 
 export function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange(v: boolean): void; label: string; hint?: string }) {
@@ -140,7 +141,7 @@ export function TopBar({ title, back, right }: { title: string; back?: boolean; 
     <header className="sticky top-0 z-10 flex items-center gap-2 bg-snow/90 px-4 py-3 backdrop-blur">
       {back && (
         <button aria-label={t("common.back")} onClick={() => navigate(-1)} className="-ml-2 flex h-10 w-10 items-center justify-center rounded-full text-xl hover:bg-white">
-          ←
+          <ArrowLeft size={22} aria-hidden />
         </button>
       )}
       <h1 className="flex-1 truncate text-lg font-bold">{title}</h1>

@@ -1,3 +1,4 @@
+import { Map as MapIcon, Phone } from "lucide-react";
 import { useState } from "react";
 
 import { Countdown, JobCardView, useErrorText } from "../../components/shared";
@@ -28,11 +29,11 @@ export function AssignmentCard({ a }: { a: WorkerAssignment }) {
           )}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <a href={mapUrl} target="_blank" rel="noreferrer">
-              <Button variant="secondary">🗺️ {t("job.map")}</Button>
+              <Button variant="secondary"><MapIcon size={18} aria-hidden /> {t("job.map")}</Button>
             </a>
             {a.employer_phone && (
               <a href={`tel:${a.employer_phone}`}>
-                <Button aria-label={phonePretty(a.employer_phone)}>📞 {t("job.call")}</Button>
+                <Button aria-label={phonePretty(a.employer_phone)}><Phone size={18} aria-hidden /> {t("job.call")}</Button>
               </a>
             )}
           </div>

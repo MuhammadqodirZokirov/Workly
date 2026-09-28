@@ -1,10 +1,12 @@
+import { Phone, Repeat, UserRound, Users } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router";
 
 import { useErrorText } from "../../components/shared";
 import { Button, Card, Empty, ErrorBox, Page, Section, Spinner, Tag, TopBar } from "../../components/ui";
 import { api } from "../../lib/api";
-import { CATEGORY_ICONS, useCatalog } from "../../lib/catalog";
+import { CategoryIcon } from "../../components/icons";
+import { useCatalog } from "../../lib/catalog";
 import { dateTime, money, phonePretty } from "../../lib/format";
 import { pickName, useI18n } from "../../lib/i18n";
 import type { Order } from "../../lib/types";
@@ -36,13 +38,13 @@ export function OrderRow({ order }: { order: Order }) {
   return (
     <Link to={`/orders/${order.id}`} className="block">
       <Card className="flex items-center gap-3">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-xl">
-          {CATEGORY_ICONS[cat?.code ?? "other"]}
-        </span>
+        <CategoryIcon code={cat?.code} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold">{spec ? pickName(spec.name, lang) : `#${order.id}`}</p>
           <p className="text-sm text-muted">
-            {dateTime(order.starts_at)} · 👷 {filled}/{order.workers}
+            <span className="inline-flex items-center gap-1">
+              {dateTime(order.starts_at)} · <Users size={14} aria-hidden /> {filled}/{order.workers}
+            </span>
           </p>
         </div>
         <StatusTag status={order.status} />
@@ -126,15 +128,17 @@ export function OrderDetail() {
             {o.assignments.map((a) => (
               <Card key={a.id} className="flex items-center justify-between gap-3">
                 <span className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-snow">👷</span>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-snow text-brand">
+                    <UserRound size={20} aria-hidden />
+                  </span>
                   <span>
                     <span className="block font-medium">{a.worker_name ?? t("order.searching")}</span>
                     {a.worker_phone && <span className="block text-sm text-muted">{phonePretty(a.worker_phone)}</span>}
                   </span>
                 </span>
                 {a.worker_phone ? (
-                  <a href={`tel:${a.worker_phone}`} className="rounded-full bg-brand-soft px-3 py-2 text-brand">
-                    📞
+                  <a href={`tel:${a.worker_phone}`} aria-label={phonePretty(a.worker_phone)} className="rounded-full bg-brand-soft p-2.5 text-brand">
+                    <Phone size={20} aria-hidden />
                   </a>
                 ) : (
                   <Spinner />
@@ -147,7 +151,7 @@ export function OrderDetail() {
         <div className="mt-6 space-y-2">
           <ErrorBox message={errorText(cancel.error)} />
           <Button variant="secondary" onClick={() => navigate(`/orders/new?repeat=${o.id}`)}>
-            🔁 {t("order.repeat")}
+            <Repeat size={18} aria-hidden /> {t("order.repeat")}
           </Button>
           {cancellable && (
             <Button variant="danger" loading={cancel.isPending} onClick={() => cancel.mutate()}>

@@ -1,3 +1,4 @@
+import { Briefcase, ChevronRight, UserRound, type LucideIcon } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -34,17 +35,19 @@ export default function RoleSelect() {
     },
   });
 
-  const option = (role: AppRole, icon: string, title: string, hint: string) => (
+  const option = (role: AppRole, Icon: LucideIcon, title: string, hint: string) => (
     <Card
       onClick={() => setChoice(role)}
       className={cx("flex items-center gap-4 border-2 transition", choice === role ? "border-brand" : "border-transparent")}
     >
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-soft text-2xl">{icon}</span>
+      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+        <Icon size={28} strokeWidth={1.8} aria-hidden />
+      </span>
       <span className="flex-1">
         <span className="block font-semibold">{title}</span>
         <span className="block text-sm text-muted">{hint}</span>
       </span>
-      <span className="text-brand">→</span>
+      <ChevronRight size={22} className="text-brand" aria-hidden />
     </Card>
   );
 
@@ -55,8 +58,8 @@ export default function RoleSelect() {
         <h1 className="text-center font-display text-3xl font-extrabold">{t("role.title")}</h1>
         <p className="mt-2 text-center text-muted">{t("role.subtitle")}</p>
         <div className="mt-8 space-y-3">
-          {option("worker", "👷", t("role.worker"), t("role.workerHint"))}
-          {option("employer", "💼", t("role.employer"), t("role.employerHint"))}
+          {option("worker", UserRound, t("role.worker"), t("role.workerHint"))}
+          {option("employer", Briefcase, t("role.employer"), t("role.employerHint"))}
         </div>
         <div className="mt-6">
           <Checkbox checked={agree} onChange={setAgree}>

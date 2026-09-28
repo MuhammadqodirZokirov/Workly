@@ -16,6 +16,14 @@ Manba: dizaynerning ekranlari (`screens/`), boardlar (`boards/`), fonlar (`web/p
 | Shrift | Inter (UI), Manrope (splash/promo sarlavha) | |
 | Tugma | balandlik ≥ 48px (TZ 19), to'la kenglik; primary — ko'k, secondary — oq + chegara | |
 
+## Ikonkalar
+
+- Kutubxona: **[Lucide](https://lucide.dev)** (`lucide-react`, ISC litsenziya) — dizayndagi chiziqli, yumaloq uslubga mos; faqat ishlatilgan ikonkalar bundle'ga kiradi
+- **Emoji ishlatilmaydi**: har platformada turlicha chiqadi va brend ranglariga bo'ysunmaydi
+- O'lcham: menyu 22px, tugma ichida 18px, teg ichida 13px; chiziq qalinligi 1.8–1.9
+- Kategoriyalar (`components/icons.tsx`): Qurilish — `HardHat`, Yuk — `Package`, Tozalash — `SprayCan`, Boshqa — `Wrench`, Bola qarash — `Baby`, Oshpazlik — `ChefHat`, Dehqonchilik — `Sprout`; har biri o'z och rangli doirasida
+- Dekorativ ikonkalar `aria-hidden`; faqat ikonkadan iborat tugmalarda `aria-label`
+
 ## Komponentlar (ekranlardan)
 
 - **Sarlavha:** chapda logo, o'ngda joylashuv tanlagich ("Toshkent ▾") va avatar

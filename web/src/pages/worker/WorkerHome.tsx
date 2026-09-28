@@ -1,3 +1,4 @@
+import { MapPin, MapPinned } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
@@ -35,7 +36,7 @@ export default function WorkerHome() {
     <Page>
       <header className="flex items-center justify-between py-4">
         <img src="/brand/logo_320.webp" alt="Workly" className="h-8" />
-        <span className="rounded-full bg-white px-3 py-1.5 text-sm shadow-[var(--shadow-card)]">📍 Toshkent</span>
+        <span className="flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-sm shadow-[var(--shadow-card)]"><MapPin size={16} className="text-brand" aria-hidden /> {t("common.city")}</span>
       </header>
       <h1 className="text-2xl font-bold">{firstName ? t("home.hello", { name: firstName }) : t("home.helloAnon")}</h1>
 
@@ -72,7 +73,7 @@ export default function WorkerHome() {
             <img src="/backgrounds/09_cobalt_waves_720.webp" alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />
             <span className="relative block text-xl font-bold">{t("home.nearby")}</span>
             <span className="relative block text-sm text-white/80">{t("home.nearbyHint")}</span>
-            <span className="absolute right-5 top-1/2 -translate-y-1/2 text-4xl">📍</span>
+            <MapPinned size={44} strokeWidth={1.6} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/90" aria-hidden />
           </Link>
 
           <Section title={t("home.offers")}>

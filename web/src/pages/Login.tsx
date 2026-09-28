@@ -1,3 +1,4 @@
+import { Phone } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { type FormEvent, useEffect, useState } from "react";
 
@@ -59,7 +60,9 @@ export default function Login() {
             <p className="text-center text-muted">{t("auth.subtitle")}</p>
             <Field label={t("auth.phone")}>
               <div className="flex items-center gap-2 rounded-xl border border-mist bg-white px-4 focus-within:border-brand">
-                <span className="text-base">🇺🇿 +998</span>
+                <span className="flex items-center gap-1.5 text-base font-medium">
+                  <Phone size={18} className="text-muted" aria-hidden /> +998
+                </span>
                 <input
                   inputMode="tel"
                   autoComplete="tel-national"

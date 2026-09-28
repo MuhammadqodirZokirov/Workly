@@ -1,3 +1,4 @@
+import { Camera, Check } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
@@ -195,7 +196,7 @@ export default function WorkerProfilePage() {
         <div className="mt-4 space-y-2">
           <ErrorBox message={errorText(save.error)} />
           <Button variant="secondary" loading={save.isPending} onClick={() => save.mutate()}>
-            {saved ? `✓ ${t("wp.saved")}` : t("common.save")}
+            {saved ? <><Check size={18} aria-hidden /> {t("wp.saved")}</> : t("common.save")}
           </Button>
         </div>
 
@@ -220,7 +221,11 @@ export default function WorkerProfilePage() {
                     {kind === "selfie" && <p className="text-xs text-muted">{t("wp.selfieHint")}</p>}
                   </div>
                   <label className="shrink-0 cursor-pointer">
-                    {files.has(kind) ? <Tag tone="success">✓ {t("wp.uploaded")}</Tag> : <Tag tone="brand">📷 {t("wp.upload")}</Tag>}
+                    {files.has(kind) ? (
+                      <Tag tone="success"><Check size={13} aria-hidden /> {t("wp.uploaded")}</Tag>
+                    ) : (
+                      <Tag tone="brand"><Camera size={13} aria-hidden /> {t("wp.upload")}</Tag>
+                    )}
                     {/* capture — telefonda to'g'ridan-to'g'ri kamera; selfie — old kamera (TZ 4: galereyadan emas) */}
                     <input
                       type="file"

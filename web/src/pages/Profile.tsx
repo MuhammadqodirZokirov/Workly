@@ -1,3 +1,4 @@
+import { ArrowLeftRight, Briefcase, ChevronRight, FileText, HardHat, LogOut } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "react-router";
 
@@ -39,8 +40,8 @@ export default function Profile() {
       <TopBar title={t("profile.title")} />
       <Page>
         <Card className="flex items-center gap-4">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-soft text-3xl">
-            {role === "worker" ? "👷" : "💼"}
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-soft text-brand">
+            {role === "worker" ? <HardHat size={30} aria-hidden /> : <Briefcase size={30} aria-hidden />}
           </span>
           <div>
             <p className="text-lg font-bold">{me?.full_name ?? phonePretty(me?.phone ?? "")}</p>
@@ -55,14 +56,17 @@ export default function Profile() {
             {role === "worker" && (
               <Link to="/worker/profile">
                 <Card className="flex justify-between">
-                  <span>📄 {t("wp.title")}</span>
-                  <span className="text-muted">→</span>
+                  <span className="flex items-center gap-3"><FileText size={20} className="text-brand" aria-hidden /> {t("wp.title")}</span>
+                  <ChevronRight size={20} className="text-muted" aria-hidden />
                 </Card>
               </Link>
             )}
             <Card className="flex justify-between" onClick={() => (hasOther ? setRole(other) : addRole.mutate())}>
-              <span>🔄 {t("role.switch")}: {t(other === "worker" ? "profile.worker" : "profile.employer")}</span>
-              <span className="text-muted">→</span>
+              <span className="flex items-center gap-3">
+                <ArrowLeftRight size={20} className="text-brand" aria-hidden /> {t("role.switch")}:{" "}
+                {t(other === "worker" ? "profile.worker" : "profile.employer")}
+              </span>
+              <ChevronRight size={20} className="text-muted" aria-hidden />
             </Card>
             <ErrorBox message={errorText(addRole.error)} />
           </div>
@@ -80,7 +84,7 @@ export default function Profile() {
 
         <div className="mt-8">
           <Button variant="danger" onClick={() => void signOut()}>
-            {t("profile.logout")}
+            <LogOut size={18} aria-hidden /> {t("profile.logout")}
           </Button>
         </div>
       </Page>

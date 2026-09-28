@@ -42,13 +42,3 @@ export const DISTRICT_CENTERS: Record<string, [number, number]> = {
   yashnobod: [41.304, 69.336],
   yunusobod: [41.365, 69.285],
 };
-
-export const CATEGORY_ICONS: Record<string, string> = {
-  construction: "🏗️",
-  cargo: "📦",
-  cleaning: "🧹",
-  other: "🧰",
-  childcare: "🧸",
-  cooking: "🍳",
-  farming: "🌾",
-};

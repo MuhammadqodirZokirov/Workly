@@ -1,3 +1,4 @@
+import { ArrowLeft, Check, FileText, TriangleAlert } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { Link, Navigate, NavLink, Outlet, useNavigate, useParams } from "react-router";
@@ -160,7 +161,7 @@ export function VerificationQueue() {
                   #{q.user_id} · {q.age ?? "?"} yosh · {q.submitted_at ? dateTime(q.submitted_at) : "—"}
                 </p>
               </div>
-              {q.duplicate_of_user_id && <Tag tone="danger">⚠ Takroriy hujjat: #{q.duplicate_of_user_id}</Tag>}
+              {q.duplicate_of_user_id && <Tag tone="danger"><TriangleAlert size={13} aria-hidden /> Takroriy hujjat: #{q.duplicate_of_user_id}</Tag>}
             </Card>
           </Link>
         ))}
@@ -208,12 +209,12 @@ export function VerificationCase() {
   return (
     <div className="max-w-5xl">
       <Link to="/admin/verifications" className="text-sm text-brand">
-        ← Navbat
+        <span className="inline-flex items-center gap-1"><ArrowLeft size={16} aria-hidden /> Navbat</span>
       </Link>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">{p.full_name ?? `#${p.user_id}`}</h1>
         <Tag tone={pending ? "brand" : "muted"}>{STATUS_LABEL[p.verification.status] ?? p.verification.status}</Tag>
-        {c.duplicate_of_user_id && <Tag tone="danger">⚠ Shu hujjat bilan akkaunt bor: #{c.duplicate_of_user_id}</Tag>}
+        {c.duplicate_of_user_id && <Tag tone="danger"><TriangleAlert size={13} aria-hidden /> Shu hujjat bilan akkaunt bor: #{c.duplicate_of_user_id}</Tag>}
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1.4fr]">
@@ -243,7 +244,7 @@ export function VerificationCase() {
             <a key={f.id} href={f.url} target="_blank" rel="noreferrer" className="block">
               <Card className="p-2">
                 {f.content_type === "application/pdf" ? (
-                  <div className="flex h-40 items-center justify-center text-4xl">📄</div>
+                  <div className="flex h-40 items-center justify-center text-muted"><FileText size={48} aria-hidden /></div>
                 ) : (
                   <img src={f.url} alt={FILE_LABELS[f.kind] ?? f.kind} className="h-40 w-full rounded-lg object-cover" />
                 )}
@@ -275,7 +276,7 @@ export function VerificationCase() {
             </Checkbox>
             <ErrorBox message={errorText(approve.error)} />
             <Button onClick={() => approve.mutate()} loading={approve.isPending}>
-              ✓ Tasdiqlash
+              <Check size={18} aria-hidden /> Tasdiqlash
             </Button>
           </Card>
           <Card className="space-y-3">
@@ -367,7 +368,7 @@ export function BusinessQueue() {
                   Rad etish…
                 </Button>
                 <Button onClick={() => approve.mutate(b.user_id)} loading={approve.isPending && approve.variables === b.user_id}>
-                  ✓ Tasdiqlash
+                  <Check size={18} aria-hidden /> Tasdiqlash
                 </Button>
               </div>
             )}

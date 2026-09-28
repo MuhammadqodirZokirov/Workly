@@ -1,3 +1,4 @@
+import { LocateFixed, MapPin, Minus, Moon, Plus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
@@ -145,12 +146,12 @@ export default function NewOrder() {
 
         <Section title={t("order.workers")}>
           <div className="flex items-center gap-4">
-            <Button variant="secondary" className="w-12" onClick={() => set("workers", Math.max(1, form.workers - 1))}>
-              −
+            <Button variant="secondary" className="w-12" aria-label="−" onClick={() => set("workers", Math.max(1, form.workers - 1))}>
+              <Minus size={18} aria-hidden />
             </Button>
             <span className="w-10 text-center text-2xl font-bold">{form.workers}</span>
-            <Button variant="secondary" className="w-12" onClick={() => set("workers", Math.min(50, form.workers + 1))}>
-              +
+            <Button variant="secondary" className="w-12" aria-label="+" onClick={() => set("workers", Math.min(50, form.workers + 1))}>
+              <Plus size={18} aria-hidden />
             </Button>
           </div>
         </Section>
@@ -200,7 +201,8 @@ export default function NewOrder() {
               <Input value={form.landmark} onChange={(e) => set("landmark", e.target.value)} />
             </Field>
             <Button variant="secondary" onClick={locate}>
-              📍 {pointExact ? t("order.pointSet") : t("order.point")}
+              {pointExact ? <LocateFixed size={18} aria-hidden /> : <MapPin size={18} aria-hidden />}
+              {pointExact ? t("order.pointSet") : t("order.point")}
             </Button>
             <Field label={t("order.description")}>
               <Textarea maxLength={500} placeholder={t("order.descriptionHint")} value={form.description} onChange={(e) => set("description", e.target.value)} />
@@ -240,7 +242,7 @@ export default function NewOrder() {
             </div>
             {!quote.price.commission_enabled && <p className="mt-2 text-xs text-success">{t("order.pilotFree")}</p>}
             <div className="mt-3 flex flex-wrap gap-2">
-              {quote.night && <Tag tone="brand">🌙 {t("job.night")}</Tag>}
+              {quote.night && <Tag tone="brand"><Moon size={13} aria-hidden /> {t("job.night")}</Tag>}
               {quote.needs_approval && <Tag>{t("order.approval")}</Tag>}
             </div>
             <details className="mt-3 text-sm">

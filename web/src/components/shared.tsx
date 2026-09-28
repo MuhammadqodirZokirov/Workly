@@ -1,8 +1,10 @@
+import { BadgeCheck, BriefcaseBusiness, Bus, ClipboardList, House, Moon, Plus, Soup, Timer, UserRound, Wrench, type LucideIcon } from "lucide-react";
 import { NavLink, Outlet } from "react-router";
 
 import { ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { CATEGORY_ICONS, useCatalog } from "../lib/catalog";
+import { useCatalog } from "../lib/catalog";
+import { CategoryIcon } from "./icons";
 import { dateTime, isToday, minutesLeft, money } from "../lib/format";
 import { errorKey, pickName, useI18n } from "../lib/i18n";
 import type { JobCard } from "../lib/types";
@@ -25,7 +27,7 @@ export function useErrorText() {
 export function AppLayout() {
   const { role } = useAuth();
   const { t } = useI18n();
-  const item = (to: string, icon: string, label: string) => (
+  const item = (to: string, Icon: LucideIcon, label: string) => (
     <NavLink
       to={to}
       end={to === "/"}
@@ -33,7 +35,7 @@ export function AppLayout() {
         cx("flex min-h-12 flex-1 flex-col items-center justify-center gap-0.5 text-[11px]", isActive ? "text-brand" : "text-muted")
       }
     >
-      <span className="text-xl leading-none">{icon}</span>
+      <Icon size={22} strokeWidth={1.9} aria-hidden />
       {label}
     </NavLink>
   );
@@ -42,18 +44,18 @@ export function AppLayout() {
       <Outlet />
       <nav className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-mist bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-md items-end px-2 pt-1.5">
-          {item("/", "🏠", t("nav.home"))}
-          {role === "employer" ? item("/orders", "🗂️", t("nav.orders")) : item("/jobs", "💼", t("nav.jobs"))}
+          {item("/", House, t("nav.home"))}
+          {role === "employer" ? item("/orders", ClipboardList, t("nav.orders")) : item("/jobs", BriefcaseBusiness, t("nav.jobs"))}
           {role === "employer" && (
             <NavLink
               to="/orders/new"
               aria-label={t("nav.new")}
-              className="-mt-6 mx-2 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand text-3xl text-white shadow-lg shadow-brand/30"
+              className="-mt-6 mx-2 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-lg shadow-brand/30"
             >
-              +
+              <Plus size={28} aria-hidden />
             </NavLink>
           )}
-          {item("/profile", "👤", t("nav.profile"))}
+          {item("/profile", UserRound, t("nav.profile"))}
         </div>
       </nav>
     </>
@@ -72,9 +74,7 @@ export function JobCardView({ job, footer, extra }: { job: JobCard; footer?: Rea
   return (
     <Card>
       <div className="flex gap-3">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-2xl">
-          {CATEGORY_ICONS[cat?.code ?? "other"] ?? "🧰"}
-        </div>
+        <CategoryIcon code={cat?.code} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <p className="truncate font-semibold">{spec ? pickName(spec.name, lang) : "…"}</p>
@@ -90,11 +90,11 @@ export function JobCardView({ job, footer, extra }: { job: JobCard; footer?: Rea
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-1.5">
-        {job.is_night && <Tag tone="brand">🌙 {t("job.night")}</Tag>}
-        {job.lunch && <Tag tone="muted">🍲 {t("job.lunch")}</Tag>}
-        {job.transport && <Tag tone="muted">🚌 {t("job.transport")}</Tag>}
-        {job.tools_by === "worker" && <Tag tone="muted">🧰 {t("job.ownTools")}</Tag>}
-        {job.employer.verified && <Tag tone="success">✓ {t("job.verifiedEmployer")}</Tag>}
+        {job.is_night && <Tag tone="brand"><Moon size={13} aria-hidden /> {t("job.night")}</Tag>}
+        {job.lunch && <Tag tone="muted"><Soup size={13} aria-hidden /> {t("job.lunch")}</Tag>}
+        {job.transport && <Tag tone="muted"><Bus size={13} aria-hidden /> {t("job.transport")}</Tag>}
+        {job.tools_by === "worker" && <Tag tone="muted"><Wrench size={13} aria-hidden /> {t("job.ownTools")}</Tag>}
+        {job.employer.verified && <Tag tone="success"><BadgeCheck size={13} aria-hidden /> {t("job.verifiedEmployer")}</Tag>}
         {extra}
       </div>
       {job.description && <p className="mt-2 line-clamp-2 text-sm text-midnight/80">{job.description}</p>}
@@ -118,5 +118,9 @@ export function JobCardView({ job, footer, extra }: { job: JobCard; footer?: Rea
 
 export function Countdown({ until }: { until: string }) {
   const { t } = useI18n();
-  return <Tag tone="accent">⏱ {t("job.expiresIn", { min: minutesLeft(until) })}</Tag>;
+  return (
+    <Tag tone="accent">
+      <Timer size={13} aria-hidden /> {t("job.expiresIn", { min: minutesLeft(until) })}
+    </Tag>
+  );
 }
