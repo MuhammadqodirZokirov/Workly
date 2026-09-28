@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* Brend tokenlari — docs/design/DESIGN.md */
+@theme {
+  --color-brand: #2563eb;
+  --color-brand-dark: #1d4ed8;
+  --color-brand-soft: #eff6ff;
+  --color-accent: #f97316;
+  --color-accent-soft: #fff7ed;
+  --color-midnight: #0f172a;
+  --color-mist: #e2e8f0;
+  --color-snow: #f8fafc;
+  --color-muted: #64748b;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Manrope", "Inter", sans-serif;
+  --shadow-card: 0 4px 16px rgb(15 23 42 / 0.06);
+  --radius-card: 16px;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-snow);
+  color: var(--color-midnight);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Pastki menyu ostidagi xavfsiz hudud (iPhone) */
+.safe-bottom {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
+}

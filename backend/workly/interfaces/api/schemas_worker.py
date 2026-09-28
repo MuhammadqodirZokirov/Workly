@@ -82,6 +82,7 @@ class WorkerProfileOut(BaseModel):
     availability: list[SlotIn]
     emergency_contact: EmergencyContact | None
     badges: list[Badge]
+    available_now_until: datetime | None = None
     verification: VerificationOut
     files: list[FileOut]
 
@@ -116,6 +117,7 @@ class WorkerProfileOut(BaseModel):
             if p.emergency_phone
             else None,
             badges=p.badges or [],
+            available_now_until=p.available_now_until,
             verification=VerificationOut(
                 status=p.verification_status,
                 doc_type=p.doc_type,

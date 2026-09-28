@@ -22,7 +22,7 @@ backend/                     FastAPI + aiogram 3, bitta jarayon (Faza 1-lite)
     workers/                 scheduler (keyingi blok)
   alembic/                   migratsiyalar
   tests/                     pytest (SQLite yoki PostgreSQL)
-web/                         React PWA + Mini App (keyingi bloklar)
+web/                         React 19 + Vite + Tailwind: PWA + Telegram Mini App
 admin/                       React + Refine (keyingi bloklar)
 deploy/                      docker-compose
 ```
@@ -47,6 +47,17 @@ uvicorn workly.interfaces.api.asgi:app --reload
 - `SMS_PROVIDER=console` bo'lsa, SMS kod logga yoziladi
 - `BOT_MODE=polling` bo'lsa, bot API bilan birga ishga tushadi; `off` — botsiz
 
+Web ilova (backend `localhost:8000` da ishlab turgan bo'lsa):
+
+```bash
+cd web
+npm install
+npm run dev          # http://localhost:5173, /api → localhost:8000
+npm test && npm run build
+```
+
+`VITE_BOT_URL=https://t.me/<bot>` — Telegram bot havolasi (ixtiyoriy).
+
 Docker bilan: `docker compose -f deploy/docker-compose.yml --env-file .env up -d --build`
 
 ## Testlar
@@ -65,7 +76,7 @@ ruff check . && ruff format --check .
 | 1. Backend yadrosi: auth, profillar, katalog, hududlar | **Tayyor**: auth, `/me`, katalog; ishchi profili, jadval, hujjatlar (shifrlangan), verifikatsiya; employer profili (jismoniy/biznes) va STIR tekshiruvi; ommaviy rezyume; audit jurnali |
 | 2. Buyurtma, matching, lenta, bot | **Deyarli tayyor**: narxlash, buyurtma yaratish; matching (ball, to'lqinlar, sovuq start), atomik qabul, ochiq lenta, scheduler (30 s), botda Qabul/Rad. Qolgan: sevimli/bloklangan ishchilar, T−60 qisman to'lgan buyurtma tanlovi, tayinlangandan keyin bekor qilish |
 | 3. Check-in, yakunlash, baho | — |
-| 4. Web frontend, 3 til | — |
+| 4. Web frontend, 3 til | **Boshlandi**: kirish (Telegram / SMS), rol tanlash, ishchi (takliflar, lenta, tayinlovlar, profil va hujjatlar), ish beruvchi (buyurtma + narx, buyurtmalar), 3 til. Qolgan: xarita, chat, baho, push |
 | 5. Admin: Refine + admin bot | — |
 | 6. Test, deploy | CI tayyor; server deploy — keyin |
 

@@ -44,3 +44,20 @@ jobs:
           BOT_TOKEN: "1:ci"
           DATA_ENCRYPTION_KEY: 7kS8GqkH1xBzuxwWm0bTtBvVh3gJ2pQ1l0kQyE4H0rM=
           DATA_HASH_KEY: ci
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx tsc -b --noEmit
+      - run: npx vitest run
+      - run: npx vite build
