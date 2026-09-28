@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, BackgroundTasks, Response
 from pydantic import BaseModel
 
 from workly.application.employer import _UNSET, EmployerInput, EmployerService
 from workly.application.relations import RelationsService
 
-from ..deps import CurrentUser, DbDep
+from ..deps import CurrentUser, DbDep, NotifierDep
 from ..schemas_employer import EmployerProfileIn, EmployerProfileOut
 
 router = APIRouter(prefix="/employer", tags=["employer"])
@@ -33,8 +33,10 @@ async def put_profile(body: EmployerProfileIn, user: CurrentUser, db: DbDep):
 
 
 @router.post("/verification", response_model=EmployerProfileOut)
-async def submit_business(user: CurrentUser, db: DbDep):
-    return EmployerProfileOut.of(await EmployerService(db).submit_business(user))
+async def submit_business(user: CurrentUser, db: DbDep, notifier: NotifierDep, background: BackgroundTasks):
+    out = EmployerProfileOut.of(await EmployerService(db).submit_business(user))
+    background.add_task(notifier.admin_signal, "business", user.id)
+    return out
 
 
 # ---------- sevimli va bloklangan ishchilar (TZ 5) ----------

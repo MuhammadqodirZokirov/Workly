@@ -79,7 +79,18 @@ async def lifespan(app: FastAPI):
             await bot.delete_webhook()
             polling_task = asyncio.create_task(dp.start_polling(bot, handle_signals=False))
 
-    app.state.notifier = BotNotifier(bot, app.state.maker, app.state.sms, settings)
+    admin_bot = admin_dp = admin_polling = None
+    if settings.bot_mode != "off" and settings.admin_bot_token:
+        from workly.interfaces.admin_bot.factory import create_admin_bot, create_admin_dispatcher, set_admin_commands
+
+        # Admin bot har doim polling: kam trafik, alohida webhook manzili shart emas
+        admin_bot = create_admin_bot(settings)
+        admin_dp = create_admin_dispatcher(app.state.maker, settings)
+        await set_admin_commands(admin_bot)
+        await admin_bot.delete_webhook()
+        admin_polling = asyncio.create_task(admin_dp.start_polling(admin_bot, handle_signals=False))
+
+    app.state.notifier = BotNotifier(bot, app.state.maker, app.state.sms, settings, admin_bot=admin_bot)
     if dp is not None:
         dp.workflow_data.update(redis=app.state.redis, notifier=app.state.notifier)
     stop = asyncio.Event()
@@ -102,6 +113,13 @@ async def lifespan(app: FastAPI):
                 await dp.stop_polling()
             with contextlib.suppress(asyncio.CancelledError):
                 await polling_task
+        if admin_polling:
+            with contextlib.suppress(RuntimeError):
+                await admin_dp.stop_polling()
+            with contextlib.suppress(asyncio.CancelledError):
+                await admin_polling
+        if admin_bot:
+            await admin_bot.session.close()
         if bot:
             await bot.session.close()
         await app.state.redis.aclose()

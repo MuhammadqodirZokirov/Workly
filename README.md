@@ -77,7 +77,7 @@ ruff check . && ruff format --check .
 | 2. Buyurtma, matching, lenta, bot | **Tayyor**: narxlash, buyurtma yaratish; matching (ball, to'lqinlar, sovuq start, sevimlilar to'lqini, bloklar), atomik qabul, ochiq lenta, scheduler (30 s), botda Qabul/Rad; T−60 qisman to'lgan buyurtma tanlovi; employer va ishchi bekor qilishi (TZ 11 jadvali, pilotda faqat Ishonchlilik) |
 | 3. Check-in, yakunlash, baho | **Tayyor**: check-in (GPS ≤ 200 m + jonli selfie, shifrlangan, 30 kunda o'chadi) va employer tasdig'i; kechikish T+15/T+30, T+60 kelmaslik → jarima va almashtirish to'lqini; yakunlash, employer tasdig'i yoki muammo, 24 soatda avtotasdiq; naqd pul qaydi; ikki tomonlama yashirin baho (48 soat), bayes reyting, ishonchlilik indeksi |
 | 4. Web frontend, 3 til | **Boshlandi**: kirish (Telegram / SMS), rol tanlash, ishchi (takliflar, lenta, tayinlovlar, profil va hujjatlar), ish beruvchi (buyurtma + narx, buyurtmalar), 3 til, ish kuni (check-in, tasdiq, baho). Qolgan: xarita, chat, push |
-| 5. Admin: Refine + admin bot | **Web panel tayyor** (`/admin`, TOTP 2FA): operatsiya taxtasi (bugungi holat, T+30 qo'ng'iroq navbati, nizolar, to'lmagan buyurtmalar), verifikatsiya, bizneslar, buyurtmalar (qidiruv, vaqt chizig'i, qo'lda tayinlash, jarimasiz bekor qilish), nizo qarori, foydalanuvchilarni bloklash, narxlar. Moderator — faqat taxta va verifikatsiya. Qolgan: admin bot |
+| 5. Admin: Refine + admin bot | **Web panel tayyor** (`/admin`, TOTP 2FA): operatsiya taxtasi (bugungi holat, T+30 qo'ng'iroq navbati, nizolar, to'lmagan buyurtmalar), verifikatsiya, bizneslar, buyurtmalar (qidiruv, vaqt chizig'i, qo'lda tayinlash, jarimasiz bekor qilish), nizo qarori, foydalanuvchilarni bloklash, narxlar. Moderator — faqat taxta va verifikatsiya. Admin bot (`ADMIN_BOT_TOKEN`): kategoriya va ish turi (qo'shish, yoqish/o'chirish; kirill avtomatik), narxlar, tumanlar, avtomatik baholarni yashirish, bugungi statistika; signallar (yangi verifikatsiya va biznes, T+30, nizo, to'lmagan buyurtma) |
 | 6. Test, deploy | CI tayyor; server deploy — keyin |
 
 ## API (hozirgi)
@@ -175,6 +175,10 @@ Birinchi super admin yoki moderator (foydalanuvchi avval ilovaga kirgan bo'lishi
 python -m workly.cli grant-role --phone +998901234567 --role super_admin
 python -m workly.cli revoke-role --phone +998901234567 --role moderator
 ```
+
+### Admin bot
+
+`ADMIN_BOT_TOKEN` berilsa, API jarayonida alohida bot (polling) ishga tushadi. Kirish — bazada `moderator`/`admin`/`super_admin` roli bor va Telegram'ni bog'lagan foydalanuvchi (asosiy botda telefonini ulashgan). Moderator — statistika va signallar; admin — kategoriya, ish turi, narx, tuman, avtomatik baholar. Har saqlashdan oldin ko'rinish va "Saqlaysizmi?" (Ha / Bekor), har o'zgarish audit jurnalida. Hujjat va selfie botga yuborilmaydi — signalda faqat web panel havolasi.
 
 ### Admin panel (`/admin`) va 2FA
 

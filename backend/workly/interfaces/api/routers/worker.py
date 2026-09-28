@@ -4,7 +4,7 @@ from workly.application.worker import ProfileInput, SkillInput, SlotInput, Worke
 from workly.domain.errors import ValidationFailed
 from workly.domain.worker import FileKind
 
-from ..deps import CipherDep, CurrentUser, DbDep, SettingsDep, StorageDep
+from ..deps import CipherDep, CurrentUser, DbDep, NotifierDep, SettingsDep, StorageDep
 from ..schemas_worker import AvailabilityIn, FileOut, SubmitIn, WorkerProfileIn, WorkerProfileOut
 
 router = APIRouter(prefix="/worker", tags=["worker"])
@@ -73,6 +73,15 @@ async def upload_file(
 
 
 @router.post("/verification", response_model=WorkerProfileOut)
-async def submit_verification(body: SubmitIn, user: CurrentUser, db: DbDep, cipher: CipherDep):
+async def submit_verification(
+    body: SubmitIn,
+    user: CurrentUser,
+    db: DbDep,
+    cipher: CipherDep,
+    notifier: NotifierDep,
+    background: BackgroundTasks,
+):
     svc = WorkerService(db, cipher=cipher)
-    return await _out(svc, await svc.submit_verification(user, body.doc_type, body.doc_number))
+    out = await _out(svc, await svc.submit_verification(user, body.doc_type, body.doc_number))
+    background.add_task(notifier.admin_signal, "verification", user.id)  # commit'dan keyin (DbDep scope)
+    return out

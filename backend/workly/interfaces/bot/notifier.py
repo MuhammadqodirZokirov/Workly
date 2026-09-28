@@ -5,11 +5,12 @@ from zoneinfo import ZoneInfo
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from workly.domain.orders import AssignmentStatus
 from workly.infrastructure.config import Settings
-from workly.infrastructure.db.models import Category, District, Offer, Order, Specialization, User
+from workly.infrastructure.db.models import Category, District, Offer, Order, Specialization, User, UserRole
 
 from .texts import t
 
@@ -44,8 +45,49 @@ log = logging.getLogger(__name__)
 class BotNotifier:
     """Asosiy kanal — Telegram bot; bot bloklangan yoki Telegram yo'q bo'lsa — SMS (TZ 15-bo'lim)."""
 
-    def __init__(self, bot: Bot | None, maker: async_sessionmaker[AsyncSession], sms, settings: Settings | None = None):
+    def __init__(
+        self,
+        bot: Bot | None,
+        maker: async_sessionmaker[AsyncSession],
+        sms,
+        settings: Settings | None = None,
+        admin_bot: Bot | None = None,
+    ):
         self.bot, self.maker, self.sms, self.settings = bot, maker, sms, settings
+        self.admin_bot = admin_bot  # signallar alohida admin botga (TZ 16); bo'lmasa — asosiy bot
+
+    async def _staff_ids(self) -> set[int]:
+        """Signal oluvchilar: sozlamadagi ADMINS + bazada xodim roli bor faol foydalanuvchilar."""
+        ids = set(self.settings.admins if self.settings else [])
+        async with self.maker() as db:
+            rows = await db.scalars(
+                select(User.telegram_id)
+                .join(UserRole, UserRole.user_id == User.id)
+                .where(
+                    UserRole.role.in_(["moderator", "admin", "super_admin"]),
+                    User.status == "active",
+                    User.telegram_id.is_not(None),
+                )
+            )
+            ids.update(rows)
+        return ids
+
+    async def _staff_signal(self, text: str) -> None:
+        bot = self.admin_bot or self.bot
+        if bot is None:
+            return
+        for tid in await self._staff_ids():
+            try:
+                await bot.send_message(tid, text)
+            except TelegramAPIError as e:
+                log.info("Admin signali yuborilmadi (%s): %s", tid, e)
+
+    async def admin_signal(self, kind: str, object_id: int) -> None:
+        """Navbat signallari: faqat havola — hujjat va selfie botga yuborilmaydi (TZ 19)."""
+        base = (self.settings.webapp_url or "").rstrip("/") if self.settings else ""
+        path = {"verification": "verifications", "business": "businesses"}.get(kind, "board")
+        link = f"{base}/admin/{path}/{object_id}" if kind == "verification" else f"{base}/admin/{path}"
+        await self._staff_signal(t(f"sig_{kind}", "uz_latn", object_id, link))
 
     async def _send(self, user_id: int, key: str, *arg_keys: str) -> None:
         async with self.maker() as db:
@@ -164,8 +206,7 @@ class BotNotifier:
             employer = await db.get(User, order.employer_id)
             filled = sum(1 for a in order.assignments if a.status == AssignmentStatus.ASSIGNED)
         await self._tg(employer.telegram_id, t("matching_exhausted_employer", employer.lang, order.id))
-        for admin_id in self.settings.admins if self.settings else []:
-            await self._tg(admin_id, t("matching_exhausted_admin", "uz_latn", order.id, filled, order.workers_count))
+        await self._staff_signal(t("matching_exhausted_admin", "uz_latn", order.id, filled, order.workers_count))
 
     # ---------- ish kuni (TZ 10, 15) ----------
     # hodisa → kimga: w — ishchi, e — employer, a — adminlar
@@ -202,8 +243,7 @@ class BotNotifier:
         if "e" in who and employer:
             await self._tg(employer.telegram_id, t(f"wd_{kind}_employer", employer.lang, a.order.id))
         if "a" in who:
-            for admin_id in self.settings.admins if self.settings else []:
-                await self._tg(admin_id, t(f"wd_{kind}_admin", "uz_latn", a.order.id, assignment_id))
+            await self._staff_signal(t(f"wd_{kind}_admin", "uz_latn", a.order.id, assignment_id))
 
     # ---------- buyurtma hodisalari (employerga) ----------
     async def order_event(self, order_id: int, kind: str) -> None:

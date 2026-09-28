@@ -120,7 +120,11 @@ async def test_business_moderation(client, employer, district_id, moderator, not
     r = await client.post(f"{API}/admin/employers/{uid}/approve", headers=mh)
     p = r.json()
     assert p["business_verification"]["status"] == "verified" and p["badges"] == ["verified_employer"]
-    assert notifier.calls == [("business", uid, False, "stir_invalid"), ("business", uid, True, None)]
+    assert [c for c in notifier.calls if c[0] == "business"] == [
+        ("business", uid, False, "stir_invalid"),
+        ("business", uid, True, None),
+    ]
+    assert ("admin_signal", "business", uid) in notifier.calls
 
     states = [
         (t.from_state, t.to_state)

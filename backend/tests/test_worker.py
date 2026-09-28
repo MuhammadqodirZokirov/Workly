@@ -184,7 +184,7 @@ async def test_submit_incomplete(client, worker):
     } <= set(missing)
 
 
-async def test_submit_and_locks(client, worker, catalog, db):
+async def test_submit_and_locks(client, worker, catalog, db, notifier):
     cats, districts = catalog
     uid, h = await worker()
     await complete_worker(client, h, cats, districts)
@@ -193,6 +193,7 @@ async def test_submit_and_locks(client, worker, catalog, db):
     )
     assert r.status_code == 200, r.text
     assert r.json()["verification"]["status"] == "pending"
+    assert ("admin_signal", "verification", uid) in notifier.calls  # xodimlarga signal
 
     profile = await db.get(WorkerProfile, uid)
     assert profile.doc_number_enc and "AA1234567" not in profile.doc_number_enc  # shifrlangan
@@ -256,7 +257,7 @@ async def test_moderation_flow(client, worker, catalog, moderator, notifier, db)
 
     r = await client.post(f"{API}/admin/verifications/{uid}/approve", json={}, headers=mh)
     assert r.status_code == 200 and r.json()["verification"]["status"] == "verified"
-    assert notifier.calls == [(uid, True, None)]
+    assert [c for c in notifier.calls if c[0] != "admin_signal"] == [(uid, True, None)]
     # ikki marta tasdiqlab bo'lmaydi
     assert (await client.post(f"{API}/admin/verifications/{uid}/approve", json={}, headers=mh)).status_code == 409
 
@@ -273,7 +274,7 @@ async def test_reject_and_resubmit(client, worker, catalog, moderator, notifier)
     assert r.json()["code"] == "COMMENT_REQUIRED"
     r = await client.post(f"{API}/admin/verifications/{uid}/reject", json={"reason": "blurry"}, headers=mh)
     assert r.json()["verification"]["status"] == "rejected"
-    assert notifier.calls == [(uid, False, "blurry")]
+    assert [c for c in notifier.calls if c[0] != "admin_signal"] == [(uid, False, "blurry")]
 
     prof = (await client.get(f"{API}/worker/profile", headers=h)).json()
     assert prof["verification"]["rejection_reason"] == "blurry"

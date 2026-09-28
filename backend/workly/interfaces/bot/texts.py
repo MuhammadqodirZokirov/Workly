@@ -76,6 +76,8 @@ _LATN = {
     "wd_dispute_resolved_worker": "Buyurtma #{0}: muammo bo'yicha admin qaror qabul qildi. Tafsilotlar ilovada.",
     "wd_dispute_resolved_employer": "Buyurtma #{0}: muammo bo'yicha admin qaror qabul qildi. Tafsilotlar ilovada.",
     "order_cancelled_by_admin_employer": "Buyurtma #{0} administrator tomonidan bekor qilindi. Savollar bo'lsa, qo'llab-quvvatlashga yozing.",
+    "sig_verification": "🪪 Yangi verifikatsiya: ishchi #{0}. Ko'rish (web panel): {1}",
+    "sig_business": "🏢 Yangi biznes tekshiruvi: #{0}. Ko'rish: {1}",
 }
 
 _RU = {

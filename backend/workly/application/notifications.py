@@ -20,6 +20,8 @@ class Notifier(Protocol):
 
     async def order_event(self, order_id: int, kind: str) -> None: ...
 
+    async def admin_signal(self, kind: str, object_id: int) -> None: ...
+
 
 class NullNotifier:
     async def verification_result(self, user_id: int, approved: bool, reason: str | None) -> None:
@@ -44,4 +46,7 @@ class NullNotifier:
         return None
 
     async def order_event(self, order_id: int, kind: str) -> None:
+        return None
+
+    async def admin_signal(self, kind: str, object_id: int) -> None:
         return None

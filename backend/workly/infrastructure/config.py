@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     webapp_url: str = "https://example.com"
     telegram_auth_max_age: int = 24 * 3600
     admins: list[int] = []  # JSON: [123, 456]
+    # Alohida admin bot (TZ 16): kategoriya, narx, hudud, signallar. Bo'sh bo'lsa — signallar asosiy botdan
+    admin_bot_token: SecretStr | None = None
 
     # SMS
     sms_provider: Literal["console", "eskiz"] = "console"
