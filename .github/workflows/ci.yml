@@ -61,3 +61,19 @@ jobs:
       - run: npx tsc -b --noEmit
       - run: npx vitest run
       - run: npx vite build
+
+  docker:
+    # Serverga joylash obrazlari build bo'ladimi (push qilinmaydi)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Compose config
+        run: docker compose -f deploy/docker-compose.yml config -q
+        env:
+          DOMAIN: example.uz
+          ACME_EMAIL: admin@example.uz
+          POSTGRES_PASSWORD: ci
+      - name: Build api
+        run: docker build -t workly-api backend
+      - name: Build web
+        run: docker build -t workly-web -f deploy/web.Dockerfile .

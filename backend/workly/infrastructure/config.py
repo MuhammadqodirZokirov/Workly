@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -57,6 +57,31 @@ class Settings(BaseSettings):
     scheduler_enabled: bool = True
     max_upload_mb: int = 5
     cors_origins: list[str] = []
+
+    @model_validator(mode="after")
+    def _prod_guard(self) -> "Settings":
+        """Production'da namuna qiymatlar va xavfli rejimlar bilan ishga tushmaslik."""
+        if self.env != "prod":
+            return self
+        problems = []
+        jwt = self.jwt_secret.get_secret_value()
+        if len(jwt) < 32 or "almashtiring" in jwt:
+            problems.append("JWT_SECRET: kamida 32 belgili tasodifiy satr")
+        if "almashtiring" in self.database_url:
+            problems.append("POSTGRES_PASSWORD: namuna parol")
+        if not self.data_hash_key.get_secret_value():
+            problems.append("DATA_HASH_KEY bo'sh")
+        if self.sms_provider == "console":
+            problems.append("SMS_PROVIDER=console — kodlar logga yoziladi; prod'da eskiz kerak")
+        if self.bot_mode == "webhook" and not (self.public_base_url and self.bot_webhook_secret):
+            problems.append("BOT_MODE=webhook: PUBLIC_BASE_URL va BOT_WEBHOOK_SECRET kerak")
+        if not self.webapp_url.startswith("https://") or "example" in self.webapp_url:
+            problems.append("WEBAPP_URL: haqiqiy https manzil")
+        if not self.admin_mfa_required:
+            problems.append("ADMIN_MFA_REQUIRED=false prod'da mumkin emas")
+        if problems:
+            raise ValueError("Production sozlamalari noto'g'ri:\n- " + "\n- ".join(problems))
+        return self
 
 
 @lru_cache

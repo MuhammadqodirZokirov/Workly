@@ -50,3 +50,16 @@ async def test_catalog(client):
     assert [r["code"] for r in regions] == ["tashkent_city"]
     districts = (await client.get(f"{API}/catalog/districts", params={"region_id": regions[0]["id"]})).json()
     assert len(districts) == 12
+
+
+async def test_health(client, app):
+    r = await client.get("/api/v1/health")
+    assert r.status_code == 200 and r.json() == {"status": "ok", "db": "ok", "redis": "ok"}
+
+    class DeadRedis:
+        async def ping(self):
+            raise ConnectionError("redis yo'q")
+
+    app.state.redis = DeadRedis()
+    r = await client.get("/health")
+    assert r.status_code == 503 and r.json()["redis"] == "fail"

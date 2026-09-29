@@ -74,3 +74,30 @@ def test_phone_bad(raw):
 )
 def test_translit(latn, cyrl):
     assert latin_to_cyrillic(latn) == cyrl
+
+
+def test_prod_settings_guard():
+    import pytest
+    from pydantic import ValidationError
+
+    from workly.infrastructure.config import Settings
+
+    base = dict(
+        jwt_secret="almashtiring-kamida-32-belgili-tasodifiy-satr",
+        data_encryption_key="k",
+        data_hash_key="",
+        bot_token="1:x",
+        _env_file=None,
+    )
+    Settings(**base)  # dev — namuna qiymatlar mumkin
+    with pytest.raises(ValidationError) as e:
+        Settings(**base, env="prod")
+    msg = str(e.value)
+    assert "JWT_SECRET" in msg and "SMS_PROVIDER" in msg and "WEBAPP_URL" in msg and "DATA_HASH_KEY" in msg
+    Settings(
+        **{**base, "jwt_secret": "x" * 40, "data_hash_key": "h"},
+        env="prod",
+        sms_provider="eskiz",
+        webapp_url="https://app.workly.uz",
+        database_url="postgresql+asyncpg://w:strong@db/w",
+    )

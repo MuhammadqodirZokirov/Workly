@@ -3,9 +3,11 @@ import contextlib
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
+from sqlalchemy import text
 
 from workly.infrastructure.config import Settings, get_settings
 from workly.infrastructure.crypto import DataCipher
@@ -166,7 +168,22 @@ def create_app(settings: Settings | None = None, *, use_lifespan: bool = True) -
     app.include_router(api)
 
     @app.get("/health", include_in_schema=False)
-    async def health():
-        return {"status": "ok"}
+    @app.get("/api/v1/health", include_in_schema=False)
+    async def health(request: Request):
+        """Monitoring uchun: baza va Redis javob beradimi (xato bo'lsa 503)."""
+        checks = {}
+        try:
+            async with request.app.state.maker() as db:
+                await db.execute(text("select 1"))
+            checks["db"] = "ok"
+        except Exception:
+            checks["db"] = "fail"
+        try:
+            await request.app.state.redis.ping()
+            checks["redis"] = "ok"
+        except Exception:
+            checks["redis"] = "fail"
+        ok = all(v == "ok" for v in checks.values())
+        return JSONResponse({"status": "ok" if ok else "fail", **checks}, status_code=200 if ok else 503)
 
     return app

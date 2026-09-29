@@ -1,6 +1,7 @@
 # Faza 1-lite: bitta server. Ishga tushirish (repo ildizidan):
-#   cp .env.example .env   # to'ldiring
+#   cp .env.example .env   # to'ldiring (DOMAIN, parollar, kalitlar, bot tokenlari)
 #   docker compose -f deploy/docker-compose.yml --env-file .env up -d --build
+# Batafsil: deploy/README.md
 services:
   db:
     image: postgis/postgis:16-3.4
@@ -30,20 +31,68 @@ services:
   api:
     build: ../backend
     restart: unless-stopped
-    env_file: ../.env
+    env_file:
+      - path: ../.env
+        required: false  # CI'da compose config tekshiruvi uchun
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-workly}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-workly}
       REDIS_URL: redis://redis:6379/0
       MEDIA_DIR: /data/media
     volumes:
-      - media:/data/media  # shifrlangan hujjat va selfie; zaxira nusxaga kiritilsin
+      - media:/data/media  # shifrlangan hujjat va selfie
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Web ilova + HTTPS (Caddy, Let's Encrypt avtomatik). 80/443 portlar ochiq bo'lishi kerak.
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web.Dockerfile
+      args:
+        VITE_BOT_URL: ${VITE_BOT_URL:-}
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN kerak (masalan app.workly.uz)}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL kerak}
     ports:
-      - "127.0.0.1:8000:8000"  # tashqariga Nginx orqali chiqariladi
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - caddy_data:/data  # sertifikatlar — o'chirmang (Let's Encrypt limitlari)
+      - caddy_config:/config
+    depends_on:
+      - api
+
+  # Kunlik zaxira: baza + media, BACKUP_KEEP_DAYS kun saqlanadi (backups volume)
+  backup:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    entrypoint: ["sh", "/backup.sh"]
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-workly}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-workly}
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./backup.sh:/backup.sh:ro
+      - backups:/backups
+      - media:/media:ro
+    depends_on:
+      db: {condition: service_healthy}
 
 volumes:
   pgdata:
   redisdata:
   media:
+  caddy_data:
+  caddy_config:
+  backups:
