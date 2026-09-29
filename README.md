@@ -151,6 +151,11 @@ Xato formati: `{"code": "...", "message": "...", "details": ...}`.
 - **Yakunlash**: employer 24 soatda tasdiqlamasa — avtotasdiq (20-soatda eslatma). Muammosiz ish +2 ishonchlilik, kechikish −3; indeks < 40 — takliflar to'xtaydi
 - **Baho**: ikkala tomon baholaguncha yashirin; 48 soatda baholanmasa — joriy o'rtacha bilan avtomatik (reytingga kirmaydi). Reyting: bayes (m=4.5, C=3), so'nggi 20 ta, eskilari kamroq vazn
 
+## Pilot cheklovlari
+
+- **Ish joyi — xaritada majburiy** (Leaflet + OpenStreetMap, kalitsiz): check-in shu nuqtadan 200 m ichida tekshiriladi, shuning uchun tuman markazi taxmin sifatida olinmaydi
+- **Ko'p kunlik buyurtma o'chiq** (`MULTI_DAY_ENABLED=false`): har kun alohida check-in va yakun (TZ 6, OS-9) hali yo'q. Web ilova `GET /api/v1/catalog/features` orqali bilib, variantni yashiradi; API `MULTI_DAY_DISABLED` qaytaradi
+
 ## Bekor qilish va T−60 (TZ 6, 11)
 
 - **Employer**: ishchi yo'q yoki ≥ 24 soat — bepul; 6–24 soat — 20%, −5; < 6 soat — 50%, −10; ishchi yetib kelgandan keyin — birinchi kunning 100%, −10. Employer Ishonchlilik qiymatlari TZ da berilmagan — ishchi jadvaliga o'xshash olindi

@@ -45,3 +45,18 @@ textarea,
 button {
   font: inherit;
 }
+
+/* Xaritadagi ish joyi pini (MapPicker) */
+.workly-pin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--color-brand);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+  transform: rotate(-45deg);
+}
+.leaflet-container {
+  font: inherit;
+  z-index: 0;
+}

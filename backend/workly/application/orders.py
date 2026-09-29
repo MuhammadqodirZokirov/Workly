@@ -166,6 +166,10 @@ class OrderService:
     # ---------- narx ----------
     async def quote(self, user: User, p: OrderParams) -> QuoteResult:
         await self._ensure_employer(user)
+        if p.duration == Duration.MULTI_DAY and not self.settings.multi_day_enabled:
+            raise ValidationFailed(
+                "Ko'p kunlik buyurtma hozircha yo'q — har kunga alohida buyurtma bering", code="MULTI_DAY_DISABLED"
+            )
         night, needs_approval = await self._validate(user, p)
         row, cfg = await PriceService(self.db).resolve(p.category_id, p.specialization_id)
         q = calculate(

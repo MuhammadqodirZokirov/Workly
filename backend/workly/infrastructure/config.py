@@ -48,6 +48,8 @@ class Settings(BaseSettings):
 
     # Faza 1-lite pilot bepul: komissiya yo'q (TZ 22). YaTT ochilgach yoqiladi.
     commission_enabled: bool = False
+    # Ko'p kunlik buyurtma: har kun alohida check-in va yakun (TZ 6, OS-9) hali yo'q — pilotda o'chiq
+    multi_day_enabled: bool = False
 
     # Admin panel: TOTP 2FA majburiy (TZ 3); sessiya — bitta smena
     admin_mfa_required: bool = True

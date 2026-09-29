@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from workly.application.catalog import CatalogService
 
-from ..deps import DbDep
+from ..deps import DbDep, SettingsDep
 from ..schemas import CategoryOut, DistrictOut, Names, RegionOut, SpecializationOut
 
 router = APIRouter(prefix="/catalog", tags=["catalog"])
@@ -34,3 +34,9 @@ async def districts(db: DbDep, region_id: int | None = None):
         DistrictOut(id=d.id, region_id=d.region_id, code=d.code, name=Names.of(d))
         for d in await CatalogService(db).districts(region_id)
     ]
+
+
+@router.get("/features")
+async def features(settings: SettingsDep) -> dict[str, bool]:
+    """Web ilova uchun yoqilgan funksiyalar (pilot sozlamalari)."""
+    return {"multi_day": settings.multi_day_enabled, "commission": settings.commission_enabled}

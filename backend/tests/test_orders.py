@@ -123,6 +123,7 @@ async def test_rules_must_be_accepted(client, emp, ids):
         ({"district_id": 99999}, "INVALID_DISTRICT"),
         ({"duration": None}, "DURATION_REQUIRED"),
         ({"payment_mode": "online"}, "PAYMENT_MODE_UNAVAILABLE"),
+        ({"duration": "multi_day", "days": 3}, "MULTI_DAY_DISABLED"),  # pilotda o'chiq (OS-9)
     ],
 )
 async def test_quote_validation(client, emp, ids, patch, code):
@@ -245,3 +246,14 @@ async def test_employer_role_required(client, login):
     district = (await client.get(f"{API}/catalog/districts")).json()[0]["id"]
     r = await client.post(f"{API}/orders/quote", json=order_body({"construction": c}, district), headers=h)
     assert r.status_code == 403 and r.json()["code"] == "NOT_AN_EMPLOYER"
+
+
+async def test_features_and_multi_day_when_enabled(client, emp, ids, app):
+    assert (await client.get(f"{API}/catalog/features")).json() == {"multi_day": False, "commission": False}
+    app.state.settings = app.state.settings.model_copy(update={"multi_day_enabled": True})
+    cats, district = ids
+    _, h = emp
+    r = await client.post(
+        f"{API}/orders/quote", json=order_body(cats, district, duration="multi_day", days=3), headers=h
+    )
+    assert r.status_code == 200 and r.json()["price"]["days"] == 3

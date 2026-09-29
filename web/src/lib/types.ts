@@ -122,6 +122,7 @@ export interface Order {
   days: number;
   is_night: boolean;
   district_id: number;
+  point: GeoPoint;
   address_text: string;
   landmark: string | null;
   description: string | null;

@@ -1,6 +1,6 @@
-import { LocateFixed, MapPin, Minus, Moon, Plus } from "lucide-react";
+import { Minus, Moon, Plus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
 import { useErrorText } from "../../components/shared";
@@ -10,6 +10,9 @@ import { DISTRICT_CENTERS, useCatalog } from "../../lib/catalog";
 import { dateTashkent, money } from "../../lib/format";
 import { pickName, useI18n } from "../../lib/i18n";
 import type { Duration, GeoPoint, Order, OrderInput, Quote } from "../../lib/types";
+
+// Xarita (Leaflet) faqat shu sahifada kerak — alohida bo'lak bo'lib yuklanadi
+const MapPicker = lazy(() => import("../../components/MapPicker").then((m) => ({ default: m.MapPicker })));
 
 /**
  * Yangi buyurtma (dizayndagi "Yangi ish joyi"). Dizayndan farqi: "Maosh" maydoni yo'q —
@@ -42,7 +45,12 @@ export default function NewOrder() {
     top_only: false,
   });
   const [point, setPoint] = useState<GeoPoint | null>(null);
-  const [pointExact, setPointExact] = useState(false);
+  const features = useQuery({
+    queryKey: ["features"],
+    queryFn: () => api<{ multi_day: boolean }>("/catalog/features", { auth: false }),
+    staleTime: Infinity,
+  });
+  const multiDay = features.data?.multi_day ?? false;
   const [quote, setQuote] = useState<Quote | null>(null);
   const [agree, setAgree] = useState(false);
   const idempotencyKey = useMemo(newIdempotencyKey, [quote?.quote_id]);
@@ -57,13 +65,15 @@ export default function NewOrder() {
       category_id: o.category_id,
       specialization_id: o.specialization_id,
       workers: o.workers,
-      duration: o.duration ?? "day",
+      duration: o.duration === "multi_day" && !multiDay ? "day" : (o.duration ?? "day"),
       days: o.days > 1 ? o.days : 2,
       district_id: o.district_id,
       address_text: o.address_text,
       landmark: o.landmark ?? "",
       description: o.description ?? "",
     }));
+    setPoint(o.point);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previous.data]);
 
   const category = catalog.category(form.category_id);
@@ -72,20 +82,14 @@ export default function NewOrder() {
     setQuote(null);
   };
 
-  const locate = () =>
-    navigator.geolocation?.getCurrentPosition(
-      (pos) => {
-        setPoint({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-        setPointExact(true);
-        setQuote(null);
-      },
-      () => setPointExact(false),
-      { enableHighAccuracy: true, timeout: 10_000 },
-    );
+  const district = catalog.district(form.district_id);
+  const center: [number, number] = (district && DISTRICT_CENTERS[district.code]) || [41.3111, 69.2797];
+  const pickPoint = (p: GeoPoint) => {
+    setPoint(p);
+    setQuote(null);
+  };
 
   const body = (): OrderInput => {
-    const district = catalog.district(form.district_id);
-    const center = district ? DISTRICT_CENTERS[district.code] : undefined;
     return {
       category_id: form.category_id,
       specialization_id: form.specialization_id,
@@ -94,7 +98,7 @@ export default function NewOrder() {
       start_time: form.start_time,
       duration: form.duration,
       days: form.duration === "multi_day" ? form.days : 1,
-      point: point ?? (center ? { lat: center[0], lon: center[1] } : { lat: 41.3111, lon: 69.2797 }),
+      point: point!, // majburiy — tuman markazi taxmin sifatida yuborilmaydi (check-in 200 m)
       district_id: form.district_id,
       address_text: form.address_text,
       landmark: form.landmark || null,
@@ -119,7 +123,7 @@ export default function NewOrder() {
     },
   });
 
-  const ready = form.specialization_id && form.district_id && form.address_text.trim().length >= 3;
+  const ready = form.specialization_id && form.district_id && form.address_text.trim().length >= 3 && point;
 
   return (
     <>
@@ -167,7 +171,7 @@ export default function NewOrder() {
 
         <Section title={t("order.duration")}>
           <div className="flex flex-wrap gap-2">
-            {(["half_day", "day", "multi_day"] as Duration[]).map((d) => (
+            {((multiDay ? ["half_day", "day", "multi_day"] : ["half_day", "day"]) as Duration[]).map((d) => (
               <Chip key={d} active={form.duration === d} onClick={() => set("duration", d)}>
                 {t(`dur.${d}`)}
               </Chip>
@@ -200,10 +204,9 @@ export default function NewOrder() {
             <Field label={t("order.landmark")}>
               <Input value={form.landmark} onChange={(e) => set("landmark", e.target.value)} />
             </Field>
-            <Button variant="secondary" onClick={locate}>
-              {pointExact ? <LocateFixed size={18} aria-hidden /> : <MapPin size={18} aria-hidden />}
-              {pointExact ? t("order.pointSet") : t("order.point")}
-            </Button>
+            <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-mist/40" />}>
+              <MapPicker center={center} value={point} onChange={pickPoint} />
+            </Suspense>
             <Field label={t("order.description")}>
               <Textarea maxLength={500} placeholder={t("order.descriptionHint")} value={form.description} onChange={(e) => set("description", e.target.value)} />
             </Field>
@@ -219,6 +222,7 @@ export default function NewOrder() {
 
         <div className="mt-6 space-y-3">
           <ErrorBox message={errorText(getQuote.error)} />
+          {!quote && !point && <p className="text-center text-xs text-muted">{t("order.pointRequired")}</p>}
           {!quote && (
             <Button disabled={!ready} loading={getQuote.isPending} onClick={() => getQuote.mutate()}>
               {t("order.getPrice")}
